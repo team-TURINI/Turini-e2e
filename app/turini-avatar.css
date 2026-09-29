@@ -49,6 +49,13 @@
 
 /* 자리별 크기 — 배경이 있는 무대는 정사각형 카드라 따로 잡습니다 */
 .turini-avatar--editor { width: min(320px, 100%); margin: 0 auto; }
+/* 꾸미기 무대의 앞면·뒷면만 배경 안에서 작게 보여 줍니다.
+   선택 카드와 착용 완성본 파일에는 영향을 주지 않습니다. */
+.turini-avatar--editor.turini-avatar--scene .turini-avatar__figure {
+  inset: auto auto 5% 17%;
+  width: 66%;
+  height: 66%;
+}
 .turini-avatar--card { width: 64px; border-radius: 16px; }
 .profile-mascot-frame .turini-avatar { width: 142px; border-radius: 20px; }
 .hero-mascot .turini-avatar { width: 172px; border-radius: 22px; }
@@ -88,9 +95,11 @@
 .turini-avatar--turn { background: #eef3f0; border-radius: 24px; overflow: hidden; }
 .turini-dress__turn {
   position: absolute;
-  inset: 0;
+  inset: auto auto 5% 17%;
   z-index: 1;
   display: block;
+  width: 66%;
+  height: 66%;
 }
 .turini-dress__turn img {
   display: block;
