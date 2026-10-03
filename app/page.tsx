@@ -1,6 +1,8 @@
 "use client";
 
 import { CSSProperties, ChangeEvent, Dispatch, FormEvent, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ChatPanel from "./chat/chat-panel";
+import "./chat/chat.css";
 import {
   conceptKey,
   planSessionQuestions,
@@ -1182,6 +1184,7 @@ export default function Home() {
                 <button className="primary-button" disabled={!allocationReady} onClick={runPortfolioAnalysis}>{allocationReady ? "포트폴리오 분석하기" : `합계를 100%로 맞춰주세요 (${allocationTotal}%)`}</button>
               </div>
               {portfolioResult && <PortfolioResults result={portfolioResult} allocation={allocation} tab={portfolioTab} setTab={setPortfolioTab} aiFeedback={aiFeedback} aiFeedbackLoading={aiFeedbackLoading} aiFeedbackError={aiFeedbackError} retryAiFeedback={() => void requestAiFeedback(portfolioResult)} />}
+              <ChatPanel key={account.username} />
             </div>
           )}
 

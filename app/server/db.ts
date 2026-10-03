@@ -46,6 +46,30 @@ export function ensureSchema() {
         CREATE INDEX IF NOT EXISTS turini_sessions_expires_at_idx
         ON turini_sessions(expires_at)
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS turini_rag_conversations (
+          id UUID PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES turini_users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          state JSONB,
+          messages JSONB NOT NULL DEFAULT '[]'::jsonb,
+          lease_token UUID,
+          busy_until TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS turini_rag_conversations_user_idx
+        ON turini_rag_conversations(user_id, updated_at DESC)
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS turini_rag_rate (
+          user_id TEXT PRIMARY KEY REFERENCES turini_users(id) ON DELETE CASCADE,
+          window_start TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          request_count INTEGER NOT NULL DEFAULT 1
+        )
+      `;
     })().catch((error) => {
       schemaPromise = null;
       throw error;

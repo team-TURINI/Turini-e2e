@@ -16,3 +16,9 @@ services:
         value: gpt-4.1-mini-2025-04-14
       - key: PORT
         value: 10000
+      - key: RAG_API_URL
+        value: https://turini-rag-941433084012.asia-northeast3.run.app
+      - key: RAG_API_KEY
+        sync: false
+      - key: GCP_SA_KEY
+        sync: false

@@ -1,0 +1,20 @@
+.rag-chat { width: 100%; min-width: 0; margin-top: 24px; padding: 24px 18px; display: flex; flex-direction: column; gap: 18px; }
+.rag-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rag-chat-header h2 { font-size: clamp(20px, 4vw, 28px); margin: 0; }
+.rag-chat-header a { color: inherit; text-decoration: none; }
+.rag-chat button { border: 0; border-radius: 12px; padding: 12px 16px; background: #287634; color: white; font: inherit; cursor: pointer; }
+.rag-chat button:disabled { opacity: .5; cursor: default; }
+.rag-chat-history { display: flex; gap: 12px; align-items: center; font-weight: 600; }
+.rag-chat-history select { min-width: 0; flex: 1; padding: 10px; border: 1px solid #d4dfd4; border-radius: 10px; background: white; color: #263326; }
+.rag-chat-messages { min-height: 180px; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.rag-chat-empty { text-align: center; padding: 48px 18px; color: #405440; }
+.rag-chat-empty h2 { font-size: 21px; }
+.rag-chat-message { max-width: 90%; padding: 14px 18px; border-radius: 16px; background: white; border: 1px solid #dfe7dc; }
+.rag-chat-message.user { align-self: flex-end; background: #e7f4dc; }
+.rag-chat-message span { font-size: 12px; font-weight: 700; color: #435343; }
+.rag-chat-message p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; margin: 7px 0 0; }
+.rag-chat-input { display: flex; align-items: stretch; gap: 10px; }
+.rag-chat-input-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.rag-chat-input textarea { flex: 1; min-width: 0; padding: 12px; border-radius: 12px; border: 1px solid #b9cbb7; resize: vertical; font: inherit; }
+.rag-chat-error { color: #a42626; }
+.rag-chat-notice, .rag-chat-footnote { color: #526552; font-size: 13px; line-height: 1.6; margin: 0; }
