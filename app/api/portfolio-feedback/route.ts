@@ -104,7 +104,8 @@ export async function POST(request: Request) {
     return `${label} 비중을 ${Math.abs(action.delta)}%p ${action.action === "확대" ? "늘리는" : "줄이는"} 방향이에요.`;
   });
   const weakTags = stringArray(context.weakTags).filter((tag) => CONCEPT_TAGS.includes(tag as typeof CONCEPT_TAGS[number]));
-  const fallbackSummary = `서비스 변동성 위험은 ${computed.riskGrade}등급(${computed.riskGradeName})이고, 연환산 변동성은 ${computed.riskScore}%예요. 성향은 ${computed.typeFitLabel}, 기간은 ${computed.horizonFitLabel}이에요.`;
+  const cappedNote = computed.recommendationStatus === "horizon_capped" ? " 입력한 투자기간이 성향보다 낮은 위험을 요구해서, 조정안은 기간 기준을 우선했어요." : "";
+  const fallbackSummary = `서비스 변동성 위험은 ${computed.riskGrade}등급(${computed.riskGradeName})이고, 연간 손실 위험(VaR)은 ${computed.riskVar}%, 연환산 변동성은 ${computed.riskScore}%예요. 성향은 '${computed.typeFitLabel}', 기간은 '${computed.horizonFitLabel}'.${cappedNote}`;
   const allocationPercent = Object.fromEntries(
     ASSETS.map((asset) => [asset.key, Math.round((context.allocation as Allocation)[asset.key] * 1000) / 10]),
   );
@@ -112,9 +113,11 @@ export async function POST(request: Request) {
     ASSETS.map((asset) => [asset.key, Math.round(computed.nearTarget!.allocation[asset.key] * 1000) / 10]),
   ) : null;
   const allowedNumbers = [
-    computed.riskGrade, computed.riskScore, Math.round(computed.riskLevel * 100), Math.round(computed.fit * 100), Math.round(computed.horizonFit * 100),
-    computed.downside6m, computed.profileCenter, computed.horizonCenter, ASSETS.length,
+    computed.riskGrade, computed.riskScore, computed.riskVar, Math.round(computed.riskLevel * 100), Math.round(computed.fit * 100), Math.round(computed.horizonFit * 100),
+    computed.downside6m, computed.profileCenter, computed.horizonCenter, computed.horizonCap, computed.diversificationGradeDrop, ASSETS.length,
     ...computed.profileRange, ...computed.horizonRange,
+    ...(computed.nearTarget ? [computed.nearTarget.riskGrade, computed.nearTarget.riskScore, computed.nearTarget.riskVar, computed.nearTarget.downside6m] : []),
+    computed.baseTarget.riskGrade, computed.baseTarget.riskScore,
     ...Object.values(allocationPercent),
     ...(targetPercent ? Object.values(targetPercent) : []),
     ...computed.rebalancingActions.map((action) => Math.abs(action.delta)),
@@ -146,7 +149,9 @@ export async function POST(request: Request) {
           "특정 종목·상품 추천, 직접적인 매수·매도 지시, 미래 수익률 예측, 원금·수익 보장을 하지 마세요.",
           "강점 근거가 없으면 strengths는 빈 배열로 반환하세요.",
           "종합점수나 공식 규제 위험등급을 만들지 말고, 서비스 변동성 등급이라는 표현만 사용하세요.",
-          "recommendationStatus가 recommended가 아니면 improvements는 빈 배열로 반환하세요.",
+          "recommendationStatus가 recommended 또는 horizon_capped가 아니면 improvements는 빈 배열로 반환하세요.",
+          "recommendationStatus가 horizon_capped이면 summary_ko에 투자기간이 성향보다 낮은 위험을 요구해 기간 기준을 우선한 조정안이라는 점을 한 문장 넣으세요.",
+          "위험이 낮다는 사실, 분산 강점이 없다는 사실을 각각 강점이나 주의점으로 만들지 마세요. 손실 위험(VaR)과 6개월 하방은 실제 손실 한도가 아니에요.",
         ].join("\n"),
         input: `다음 JSON만 근거로 피드백을 작성하세요.\n${JSON.stringify({
           computed,
