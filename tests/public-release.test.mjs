@@ -54,7 +54,7 @@ test("GPT portfolio coaching is called through a server-only API route", () => {
   assert.match(feedbackRouteSource, /RATE_LIMIT_REQUESTS/);
   assert.match(feedbackRouteSource, /금광기업 주식형 ETF는 금이 아니라/);
   assert.match(feedbackRouteSource, /서비스 변동성 위험/);
-  assert.match(feedbackRouteSource, /recommendationStatus가 recommended가 아니면/);
+  assert.match(feedbackRouteSource, /recommendationStatus가 recommended 또는 horizon_capped가 아니면/);
   assert.match(feedbackRouteSource, /종합점수나 공식 규제 위험등급을 만들지 말고/);
   assert.doesNotMatch(pageSource, /sk-[A-Za-z0-9_-]{20,}/);
   assert.match(envExampleSource, /OPENAI_API_KEY=your_api_key_here/);
@@ -83,7 +83,7 @@ test("portfolio screen exposes the revised asset classification help", () => {
 test("학습과 포트폴리오 안내는 투린이의 친근한 해요체를 쓴다", () => {
   assert.match(pageSource, /friendlyizeExplanation\(question\.explanation\)/);
   assert.match(feedbackRouteSource, /~해요\/~이에요체를 사용하세요/);
-  assert.match(portfolioRulesSource, /분산 효과가 보여요/);
+  assert.match(portfolioRulesSource, /낮아져 있어요/);
   assert.match(portfolioRulesSource, /지금 비중을 유지해도 좋아요/);
   assert.doesNotMatch(feedbackRouteSource, /~입니다체를 사용하세요/);
   assert.doesNotMatch(pageSource, /결과를 표시하고 있습니다/);
@@ -109,7 +109,7 @@ test("AI 코치와 퀴즈 캐릭터는 모자·안경·목도리 없이 기본 �
 test("포트폴리오 결과 문구는 ~해요\/~이에요체로 맞춘다", () => {
   assert.doesNotMatch(pageSource, /상품등급 아님|실행 항목 아님|제안 안 함|격자 조정안 없음|"산출 불가"/);
   assert.doesNotMatch(pageSource, /\{result\.diversificationStatus\} ·/);
-  assert.match(portfolioRulesSource, /4\.0\.1-portfolio-v11-friendly-voice/);
+  assert.match(portfolioRulesSource, /5\.0\.0-portfolio-\$\{C\.RULE_VERSION\}/);
 });
 
 test("홈 맞춤 학습은 사용자 꾸미기를 복원하고 자산 안내만 기본 캐릭터를 쓴다", () => {
