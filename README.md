@@ -1,6 +1,6 @@
 # Turini 금융 학습 앱
 
-https://turini-web-fx5q.onrender.com
+[https://turini-web-fx5q.onrender.com](https://turini-e2e.onrender.com/)
 
 카테고리 학습 레벨은 주식·채권·펀드/ETF·위험관리·분산투자·수익률 계산별로 각각 계산됩니다. 각 카테고리에서 완료한 고유 문항 10개마다 레벨이 1씩 오르며 최대 Lv.12입니다.
 
