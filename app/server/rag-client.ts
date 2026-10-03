@@ -1,13 +1,10 @@
 import "server-only";
-import { GoogleAuth } from "google-auth-library";
 import { parseRagReply } from "../rag-contract";
-
-let auth: GoogleAuth | undefined;
 
 export function requireRagConfig() {
   const configured = process.env.RAG_API_URL;
   const apiKey = process.env.RAG_API_KEY;
-  if (!configured || !apiKey || !process.env.GCP_SA_KEY) throw new Error("RAG_NOT_CONFIGURED");
+  if (!configured || !apiKey?.trim()) throw new Error("RAG_NOT_CONFIGURED");
   const url = new URL(configured);
   if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash
     || !url.hostname.endsWith(".run.app") || !["", "/"].includes(url.pathname)) {
@@ -21,21 +18,10 @@ export async function askRag(payload: {
   state: Record<string, unknown> | null; portfolio: unknown;
 }) {
   const { url, apiKey } = requireRagConfig();
-  if (!auth) {
-    let credentials;
-    try { credentials = JSON.parse(process.env.GCP_SA_KEY!); }
-    catch { throw new Error("RAG_NOT_CONFIGURED"); }
-    if (credentials.type !== "service_account" || !credentials.client_email || !credentials.private_key) {
-      throw new Error("RAG_NOT_CONFIGURED");
-    }
-    auth = new GoogleAuth({ credentials });
-  }
-  const client = await auth.getIdTokenClient(url);
-  // ID-token client caches and refreshes tokens. Only the server receives these headers.
-  const headers = await client.getRequestHeaders(url);
+  // Shared secret is sent only from the server; Cloud Run /chat verifies it.
   const response = await fetch(`${url}/chat`, {
     method: "POST",
-    headers: { Authorization: headers.get("authorization")!, "X-API-Key": apiKey, "Content-Type": "application/json" },
+    headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify(payload), cache: "no-store", signal: AbortSignal.timeout(120_000),
   });
   if (!response.ok) throw new Error(`RAG_HTTP_${response.status}`);

@@ -20,5 +20,3 @@ services:
         value: https://turini-rag-941433084012.asia-northeast3.run.app
       - key: RAG_API_KEY
         sync: false
-      - key: GCP_SA_KEY
-        sync: false
