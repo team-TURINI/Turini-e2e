@@ -65,3 +65,13 @@ const FRIENDLY_ENDINGS: Array<[RegExp, string]> = [
 export function friendlyizeExplanation(value: string) {
   return FRIENDLY_ENDINGS.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), value.trim());
 }
+
+/** 문항별 정답을 먼저 짚어 공통 해설이 해당 문제와 바로 이어지게 합니다. */
+export function answerLinkedExplanation(type: string, answer: string, explanation: string) {
+  const detail = friendlyizeExplanation(explanation);
+  if (type === "OX") {
+    return `${answer === "O" ? "이 문장은 맞아요." : "이 문장은 틀려요."} ${detail}`;
+  }
+  return `정답은 ‘${answer}’예요. ${detail}`;
+}
+
