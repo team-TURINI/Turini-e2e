@@ -81,7 +81,7 @@ test("portfolio screen exposes the revised asset classification help", () => {
 });
 
 test("학습과 포트폴리오 안내는 투린이의 친근한 해요체를 쓴다", () => {
-  assert.match(pageSource, /friendlyizeExplanation\(question\.explanation\)/);
+  assert.match(pageSource, /answerLinkedExplanation\(question\.type, question\.answer, question\.explanation\)/);
   assert.match(feedbackRouteSource, /~해요\/~이에요체를 사용하세요/);
   assert.match(portfolioRulesSource, /낮아져 있어요/);
   assert.match(portfolioRulesSource, /지금 비중을 유지해도 좋아요/);
@@ -196,3 +196,4 @@ test("일반 화면 캐릭터는 스프라이트 로딩 없이 관절 애니메�
     assert.ok(existsSync(new URL(`../public/assets/turini-motion/${part}.webp`, import.meta.url)), `${part} 파츠 없음`);
   }
 });
+
