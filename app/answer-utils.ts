@@ -91,6 +91,14 @@ export function directInputGuide(answer: string) {
   return { copy: "정답을 직접 입력하세요", placeholder: "정답을 입력하세요", answerLabel: answer };
 }
 
+/**
+ * 선택형 문항은 데이터에 들어 있는 정답 보기 하나만 정답으로 인정합니다.
+ * 직접입력용 동의어·어미 보정은 선택지 판정에 사용하지 않습니다.
+ */
+export function isChoiceCorrect(choice: string, answer: string) {
+  return choice === answer;
+}
+
 export function isAnswerCorrect(input: string, answer: string, acceptedAnswers: string[] = []) {
   const actual = normalizeAnswer(input);
   if (!actual) return false;
@@ -102,3 +110,4 @@ export function isAnswerCorrect(input: string, answer: string, acceptedAnswers: 
     return terms.length > 1 && matchesAllTerms(actual, terms);
   });
 }
+
