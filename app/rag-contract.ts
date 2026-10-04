@@ -37,6 +37,10 @@ export function portfolioForRag(progress: Record<string, unknown>, saved: Record
       input_mode: saved.inputMode === "practice" ? "가상 연습" : "실제",
       allocation,
       ...(typeof saved.horizon === "string" ? { horizon: saved.horizon } : {}),
+      ...(typeof saved.goal === "string" && saved.goal.trim() ? { goal: saved.goal.trim().slice(0, 200) } : {}),
+      ...(typeof saved.amount === "number" && Number.isFinite(saved.amount) && saved.amount >= 0
+        ? { amount_krw: saved.amount }
+        : {}),
     },
   };
 }
@@ -69,3 +73,4 @@ export function parseRagReply(value: unknown): RagReply {
     messages: messages.map((m) => ({ role: m.role as ChatMessage["role"], content: m.content as string })),
   };
 }
+
