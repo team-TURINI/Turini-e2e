@@ -230,6 +230,16 @@ export const SPRITE_ANCHOR: Record<"hat" | "glasses" | "neck", SlotAnchor> = {
 export const SPRITE_SLOTS = ["neck", "glasses", "hat"] as const;
 export type SpriteSlot = (typeof SPRITE_SLOTS)[number];
 
+/** 착용 원본에서 중심이 왼쪽으로 치우친 아이템만 캔버스 너비 기준 %만큼 보정합니다. */
+export const ITEM_X_OFFSET: Readonly<Record<string, number>> = {
+  "neck:blue_scarf": 1.5,
+  "neck:yellow_bandana": 1.5,
+};
+
+export function itemXOffset(id: string) {
+  return ITEM_X_OFFSET[id] ?? 0;
+}
+
 export const SLOT_ANCHOR: Record<AvatarSlot, SlotAnchor> = {
   // 이마 선(눈 위)에 모자 아래쪽 가운데를 맞춥니다.
   hat: { x: 49.7, y: 32.1, gx: 0.5, gy: 1, span: 39.2, fit: "width" },
@@ -332,7 +342,7 @@ export function placementFor(
     : anchor.span / basis;
 
   return {
-    left: anchor.x - (x0 + anchor.gx * boxWidth) * size,
+    left: anchor.x + itemXOffset(item.id) - (x0 + anchor.gx * boxWidth) * size,
     top: anchor.y - (y0 + anchor.gy * boxHeight) * size,
     size,
   };
@@ -583,3 +593,4 @@ export function avatarStatsFrom(input: {
 export function unlockedCount(stats: AvatarStats) {
   return AVATAR_ITEMS.filter((entry) => isItemUnlocked(entry, stats)).length;
 }
+
