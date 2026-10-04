@@ -11,8 +11,9 @@ import {
   type ConceptReview,
   type PendingRetry,
 } from "./quiz-scheduler";
-import { directInputGuide, isAnswerCorrect } from "./answer-utils";
-import { friendlyizeExplanation } from "./explanation-utils";
+import { directInputGuide, isAnswerCorrect, isChoiceCorrect } from "./answer-utils";
+import { answerLinkedExplanation, friendlyizeExplanation } from "./explanation-utils";
+import { formatQuestionPrompt } from "./question-presentation";
 import LearningMap, { bandEntryLesson } from "./learning-map";
 import DifficultySelect, { DIFFICULTY_COPY, type DifficultyCard } from "./difficulty-select";
 import TuriniAvatar, { BasicReadingTurini, QuizThinkingTurini, TuriniAvatarProvider, TuriniDressUp, CustomizedTuriniAvatar } from "./turini-avatar";
@@ -84,6 +85,12 @@ type QuizQuestion = {
   choiceScores?: number[];
   reviewKind?: "scheduled" | "retry";
 };
+
+type QuizOverride = Partial<Pick<QuizQuestion, "question" | "explanation">>;
+
+function applyQuizOverrides(items: QuizQuestion[], overrides: Record<string, QuizOverride>) {
+  return items.map((item) => ({ ...item, ...(overrides[item.id] || {}) }));
+}
 
 type DiagnosticQuestionRow = {
   diagnostic_quiz_id: string;
@@ -424,12 +431,17 @@ export default function Home() {
     const load = async () => {
       try {
         setDataError("");
-        const [quizResponse, diagnosisResponse, accountResponse] = await Promise.all([
+        const [quizResponse, overrideResponse, diagnosisResponse, accountResponse] = await Promise.all([
           fetch("/data/quizData_864_FINAL.json"),
+          fetch("/data/quizData_overrides.json"),
           fetch("/data/diagnostic_quiz.json"),
           fetch("/api/account", { cache: "no-store" }),
         ]);
-        const quizItems = await quizResponse.json() as QuizQuestion[];
+        const baseQuizItems = await quizResponse.json() as QuizQuestion[];
+        const quizOverrides = overrideResponse.ok
+          ? await overrideResponse.json() as Record<string, QuizOverride>
+          : {};
+        const quizItems = applyQuizOverrides(baseQuizItems, quizOverrides);
         const diagnosticItems = await diagnosisResponse.json() as DiagnosticQuestionRow[];
         // 문제 데이터가 비어 있어도 앱은 뜨고, 대신 이유를 알려 줍니다.
         if (!Array.isArray(quizItems) || quizItems.length === 0) {
@@ -691,7 +703,9 @@ export default function Home() {
     const profileChoice = question.isProfile ? question.choices.indexOf(value) : -1;
     const correct = question.isProfile
       ? true
-      : isAnswerCorrect(value, question.answer, question.accepted_answers);
+      : question.type.includes("직접입력")
+        ? isAnswerCorrect(value, question.answer, question.accepted_answers)
+        : isChoiceCorrect(value, question.answer);
     const point = correct && question.diagnostic_item ? DIAG_POINTS[question.diagnostic_item] || 0 : 0;
     const profilePoint = question.isProfile ? question.choiceScores?.[profileChoice] || 0 : 0;
     const retryPlan = !correct && session.mode !== "diagnosis"
@@ -950,11 +964,7 @@ export default function Home() {
           : question.type === "빈칸선택"
             ? { label: "빈칸 선택", copy: "빈칸에 들어갈 답을 고르세요" }
             : { label: "직접 입력", copy: inputGuide.copy };
-    const displayQuestion = question.question
-      .replace(/^다음 설명이 맞으면 O, 틀리면 X를 선택하세요\.\s*/u, "")
-      .replace(/^다음 질문의 빈칸에 들어갈 알맞은 답을 고르세요\.\s*/u, "")
-      .replace(/\s*선택:\s*_+\s*$/u, "")
-      .trim();
+    const displayQuestion = formatQuestionPrompt(question.type, question.question);
     const chosen = isText ? typed : selected;
     const progressWidth = ((session.index + (answered ? 1 : 0)) / session.questions.length) * 100;
     return (
@@ -979,7 +989,7 @@ export default function Home() {
             <div className={`answer-grid ${question.choices.length === 2 ? "ox-grid" : ""}`}>
               {question.choices.map((choice, index) => {
                 const selectedChoice = selected === choice;
-                const correctChoice = answered && isAnswerCorrect(choice, question.answer);
+                const correctChoice = answered && isChoiceCorrect(choice, question.answer);
                 const wrongChoice = answered && selectedChoice && !correctChoice && !question.isProfile;
                 return (
                   <button key={`${choice}-${index}`} className={`answer-choice ${selectedChoice ? "selected" : ""} ${correctChoice && !question.isProfile ? "correct" : ""} ${wrongChoice ? "wrong" : ""}`} onClick={() => !answered && setSelected(choice)} disabled={answered}>
@@ -998,7 +1008,9 @@ export default function Home() {
           {answered ? (
             <aside className={`feedback-card ${answerCorrect ? "success" : "error"}`}>
               <h2>{question.isProfile ? "성향 선택 완료" : answerCorrect ? "정답이에요!" : `정답: ${isText ? inputGuide.answerLabel : question.answer}`}</h2>
-              <p>{friendlyizeExplanation(question.explanation)}</p>
+              <p>{question.isProfile
+                ? friendlyizeExplanation(question.explanation)
+                : answerLinkedExplanation(question.type, question.answer, question.explanation)}</p>
               {/* 출처는 데이터에 그대로 보관하고(question.source_url·source_name) 사용자 화면에는 보여 주지 않습니다. */}
             </aside>
           ) : null}
@@ -1540,3 +1552,4 @@ function PortfolioResults({ result, allocation, tab, setTab, aiFeedback, aiFeedb
     <p className="result-disclaimer">이 결과는 과거 약 3년의 문서화된 변동성 스냅샷을 사용한 금융 학습용 자산배분 예시예요. 공식 금융상품 위험등급이나 특정 상품 추천, 매수·매도 권유, 미래 손실 예측은 아니에요. 원시 시계열은 아직 재현 검증 전이고 세금·수수료·상품별 위험은 반영하지 않았어요.</p>
   </section>;
 }
+
