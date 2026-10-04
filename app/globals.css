@@ -1278,3 +1278,241 @@ body {
   .category-growth-row strong, .category-growth-row b { font-size: 11px; }
 }
 
+/* My page — the same warm finance palette used across home, learning and assets. */
+.profile-screen {
+  --profile-deep: #123c2c;
+  --profile-green: #1d5a42;
+  --profile-green-soft: #edf6f0;
+  --profile-gold: #d2a640;
+  --profile-gold-light: #f4d77f;
+  --profile-cream: #fffaf0;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 92% 3%, rgba(210,166,64,.14), transparent 26%),
+    linear-gradient(180deg, #f7fbf8 0, #fff 330px);
+}
+.profile-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(18,60,44,.03), transparent 36%, rgba(210,166,64,.035));
+}
+.profile-screen .profile-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 238px;
+  overflow: hidden;
+  border: 1px solid rgba(210,166,64,.58);
+  background:
+    radial-gradient(circle at 84% 12%, rgba(244,215,127,.3), transparent 22%),
+    radial-gradient(circle at 8% 105%, rgba(82,142,106,.44), transparent 33%),
+    linear-gradient(135deg, #0f3528 0%, #194f39 60%, #3e5d3d 100%);
+  box-shadow: 0 18px 42px rgba(18,60,44,.18), inset 0 1px 0 rgba(255,255,255,.14);
+  color: #fff;
+}
+.profile-screen .profile-hero::before,
+.profile-screen .profile-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.profile-screen .profile-hero::before {
+  width: 220px;
+  height: 220px;
+  right: -82px;
+  top: -112px;
+  border: 1px solid rgba(244,215,127,.22);
+  box-shadow: 0 0 0 26px rgba(244,215,127,.04), 0 0 0 54px rgba(244,215,127,.025);
+}
+.profile-screen .profile-hero::after {
+  width: 150px;
+  height: 3px;
+  right: 42px;
+  bottom: 31px;
+  background: linear-gradient(90deg, transparent, rgba(244,215,127,.58));
+}
+.profile-screen .profile-mascot-frame {
+  border: 1px solid rgba(244,215,127,.54);
+  background: linear-gradient(145deg, rgba(255,250,240,.96), rgba(244,215,127,.72));
+  box-shadow: 0 12px 26px rgba(3,28,19,.3), inset 0 1px 0 rgba(255,255,255,.9);
+}
+.profile-screen .profile-hero .eyebrow {
+  color: var(--profile-gold-light);
+  letter-spacing: .14em;
+}
+.profile-screen .profile-hero h1 {
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,.18);
+}
+.profile-screen .profile-hero > div:last-child > span { color: rgba(239,247,242,.82); }
+.profile-screen .profile-level-progress b { color: var(--profile-gold-light); }
+.profile-screen .profile-level-progress small { color: rgba(239,247,242,.75); }
+.profile-screen .profile-level-progress .progress-track {
+  height: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(2,29,19,.34);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.22);
+}
+.profile-screen .profile-level-progress .progress-track > span {
+  background: linear-gradient(90deg, #c5962c, #f4d77f);
+  box-shadow: 0 0 12px rgba(244,215,127,.34), inset 0 1px 0 rgba(255,255,255,.4);
+}
+
+.profile-screen .card-block {
+  border-color: rgba(27,82,59,.15);
+  background: linear-gradient(155deg, rgba(255,255,255,.99), rgba(255,250,240,.76));
+  box-shadow: 0 10px 30px rgba(18,60,44,.075);
+}
+.profile-screen .card-block .eyebrow { color: var(--profile-green); }
+.profile-screen .account-card {
+  border-top: 3px solid var(--profile-gold);
+  background:
+    radial-gradient(circle at 92% 0, rgba(210,166,64,.12), transparent 30%),
+    linear-gradient(145deg, #fff, #fbf8ef);
+}
+.profile-screen .account-identity { display: flex; align-items: center; gap: 15px; }
+.profile-screen .account-identity > .turini-avatar--card {
+  width: 74px;
+  padding: 4px;
+  border: 1px solid rgba(210,166,64,.55);
+  border-radius: 21px;
+  background: linear-gradient(145deg, #eef7f1, #fff5d8);
+  box-shadow: 0 7px 18px rgba(18,60,44,.11);
+}
+.profile-screen .account-card h2 { color: var(--profile-deep); }
+.profile-screen .account-actions button {
+  border-color: rgba(29,90,66,.2);
+  background: var(--profile-green-soft);
+  color: var(--profile-green);
+}
+.profile-screen .account-actions button:hover { border-color: rgba(29,90,66,.42); background: #e3f1e8; }
+.profile-screen .account-actions .danger-link { border-color: #efcccc; background: #fff8f7; color: #be4545; }
+
+.profile-screen .profile-stats { margin-top: 14px; }
+.profile-screen .profile-stats article {
+  position: relative;
+  min-height: 126px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  overflow: hidden;
+  border-color: rgba(244,215,127,.3);
+  background:
+    radial-gradient(circle at 84% 12%, rgba(244,215,127,.2), transparent 27%),
+    linear-gradient(145deg, var(--profile-deep), #1f5f46);
+  box-shadow: 0 9px 22px rgba(18,60,44,.14);
+}
+.profile-screen .profile-stats article::after {
+  content: "";
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  right: -28px;
+  bottom: -30px;
+  border: 1px solid rgba(244,215,127,.18);
+  border-radius: 50%;
+}
+.profile-screen .profile-stats article > span {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(244,215,127,.46);
+  border-radius: 13px;
+  background: rgba(255,250,240,.1);
+  font-size: 21px;
+}
+.profile-screen .profile-stats strong { color: #fff; font-size: 17px; }
+.profile-screen .profile-stats small { color: rgba(239,247,242,.74); }
+.profile-screen .profile-stats article:nth-child(even) {
+  background:
+    radial-gradient(circle at 84% 12%, rgba(255,255,255,.12), transparent 27%),
+    linear-gradient(145deg, #8a6726, #c89b35);
+}
+
+.profile-screen .section-heading h2,
+.profile-screen > .card-block > h2,
+.profile-screen .turini-dress__head h2 { color: var(--profile-deep); }
+.profile-screen .diagnosis-complete,
+.profile-screen .category-growth-card .section-heading > span,
+.profile-screen .weak-tag-card .section-heading > span {
+  padding: 6px 10px;
+  border: 1px solid rgba(210,166,64,.32);
+  border-radius: 999px;
+  background: rgba(244,215,127,.2);
+  color: #795813;
+}
+.profile-screen .growth-summary article {
+  border-color: rgba(29,90,66,.16);
+  background: linear-gradient(145deg, #edf7f0, #fffdf5);
+}
+.profile-screen .growth-summary strong { color: var(--profile-green); }
+.profile-screen .category-growth-row .progress-track { background: #e8eee9; }
+.profile-screen .weak-tag-card {
+  border-color: rgba(210,166,64,.38);
+  background: linear-gradient(145deg, #fffaf0, #fff);
+}
+.profile-screen .weak-tag-card > div:last-child button {
+  border-color: rgba(210,166,64,.46);
+  background: #fffdf7;
+  color: #6c5015;
+}
+.profile-screen .weak-tag-card > div:last-child button:hover { background: #fff4cf; }
+.profile-screen .turini-dress {
+  border-color: rgba(210,166,64,.3);
+  background:
+    radial-gradient(circle at 88% 4%, rgba(210,166,64,.1), transparent 22%),
+    linear-gradient(155deg, #fff, #f6fbf7);
+}
+.profile-screen .turini-dress__count,
+.profile-screen .turini-dress__tab[data-active="true"],
+.profile-screen .turini-dress__view[data-active="true"] {
+  border-color: rgba(210,166,64,.48);
+  background: #fff5d7;
+  color: var(--profile-green);
+}
+.profile-screen .turini-dress__item[data-state="selected"] {
+  border-color: var(--profile-gold);
+  background: linear-gradient(145deg, #f0f8f2, #fff5d7);
+}
+.profile-screen .turini-dress__check { background: var(--profile-green); }
+.profile-screen .badge-grid div {
+  border: 1px solid rgba(29,90,66,.13);
+  background: linear-gradient(145deg, #edf7f0, #fffaf0);
+}
+.profile-screen .badge-grid div:not(.locked) { box-shadow: inset 0 -3px 0 rgba(210,166,64,.2); }
+.profile-screen .badge-grid b { color: var(--profile-deep); }
+.app-main:has(.profile-screen) .mobile-nav button.active { color: var(--profile-deep); }
+.app-main:has(.profile-screen) .mobile-nav button.active > span {
+  background: #fff3cd;
+  box-shadow: inset 0 0 0 1px rgba(210,166,64,.4);
+}
+
+@media (max-width: 620px) {
+  .profile-screen { background: linear-gradient(180deg, #f4f9f5 0, #fff 330px); }
+  .profile-screen .profile-hero {
+    min-height: 220px;
+    background:
+      radial-gradient(circle at 88% 10%, rgba(244,215,127,.25), transparent 25%),
+      linear-gradient(140deg, #0f3528, #1d5a42 68%, #6f642f);
+  }
+  .profile-screen .profile-hero::after { right: 18px; bottom: 24px; width: 90px; }
+  .profile-screen .profile-stats article { min-height: 116px; }
+  .profile-screen .account-identity > .turini-avatar--card { width: 68px; }
+}
+
+@media (max-width: 390px) {
+  .profile-screen .profile-hero { grid-template-columns: 104px minmax(0, 1fr); padding-inline: 15px; }
+  .profile-screen .profile-mascot-frame { width: 100px; height: 150px; }
+  .profile-screen .profile-mascot-frame .character-art { width: 96px; height: 144px; }
+  .profile-screen .profile-hero h1 { font-size: 24px; }
+  .profile-screen .profile-stats { gap: 8px; }
+  .profile-screen .profile-stats article { min-height: 108px; padding: 11px 7px; }
+  .profile-screen .profile-stats article > span { width: 35px; height: 35px; }
+}
+
