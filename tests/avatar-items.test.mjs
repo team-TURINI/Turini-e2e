@@ -15,6 +15,7 @@ import {
   bagStrapColor,
   findItem,
   isItemUnlocked,
+  itemXOffset,
   itemsForSlot,
   normalizeCustomization,
   placementFor,
@@ -309,6 +310,16 @@ test("안경은 두 눈 위에 오고 어떤 아이템도 입을 덮지 않는�
   assert.ok(SLOT_ANCHOR.glasses.spanY, "안경 세로 제한이 없습니다");
 });
 
+test("파랑 목도리와 노랑 반다나만 오른쪽으로 같은 양만큼 보정한다", () => {
+  assert.equal(itemXOffset("neck:blue_scarf"), 1.5);
+  assert.equal(itemXOffset("neck:yellow_bandana"), 1.5);
+  for (const item of itemsForSlot("neck")) {
+    if (["neck:blue_scarf", "neck:yellow_bandana"].includes(item.id)) continue;
+    assert.equal(itemXOffset(item.id), 0, item.id);
+  }
+  assert.match(avatarSource, /data-item=\{item\.id\}/);
+});
+
 test("가방마다 어깨끈 색이 정해져 있다", () => {
   for (const item of itemsForSlot("bag")) {
     assert.match(bagStrapColor(item.id), /^#[0-9a-f]{6}$/i, `${item.id} 끈 색 없음`);
@@ -423,3 +434,4 @@ test("액세서리 묶음은 프레임 기준점을 그대로 따라간다", () 
   assert.match(spriteSource, /rotate\(\$\{rotate\}deg\)/);
   assert.match(spriteStyle, /\.turini-sprite__head/);
 });
+

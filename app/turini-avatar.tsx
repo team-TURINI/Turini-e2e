@@ -15,6 +15,7 @@ import {
   assetPathWebp,
   findItem,
   isItemUnlocked,
+  itemXOffset,
   itemsForSlot,
   placementFor,
   remainingLabel,
@@ -174,6 +175,14 @@ function WornThumb({ item, view = "front" }: { item: AvatarItem; view?: TurniVie
       />
     );
   }
+  const adjustedOverlay = itemXOffset(item.id) ? approvedItemAsset(item, "overlay") : null;
+  if (adjustedOverlay) {
+    return <span className="turini-dress__adjusted-worn-thumb" aria-hidden="true">
+      <Image src={BAG_BASE.front} alt="" fill unoptimized sizes="160px" draggable={false} />
+      <Image className="turini-dress__adjusted-worn-overlay" data-item={item.id}
+        src={adjustedOverlay} alt="" fill unoptimized sizes="160px" draggable={false} />
+    </span>;
+  }
   const worn = wornPreview(item);
   if (!worn || failed) return <ItemImage item={item} />;
   return (
@@ -213,7 +222,8 @@ function TurnaroundView({ customization, view }: { customization: TuriniCustomiz
           sizes="(max-width: 768px) 66vw, 211px" draggable={false} />
         {layered.map(({ item, src }) => src ? (
           <Image key={item.id} className={`turini-dress__worn-layer turini-dress__worn-layer--${item.slot}`}
-            src={src} alt="" fill unoptimized sizes="(max-width: 768px) 66vw, 211px" draggable={false} />
+            data-item={item.id} src={src} alt="" fill unoptimized
+            sizes="(max-width: 768px) 66vw, 211px" draggable={false} />
         ) : (
           <PreviewAccessory key={item.id} item={item} view={view} />
         ))}
@@ -483,3 +493,4 @@ function LockBadge() {
     </span>
   );
 }
+

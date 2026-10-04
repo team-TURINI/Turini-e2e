@@ -643,12 +643,12 @@ body {
 .auth-note { display: block; margin-top: 11px; color: #849088; font-size: 9px; line-height: 1.55; text-align: center; }
 .diagnosis-complete { display: inline-flex; margin-top: 13px; color: #6949b2; font-size: 10px; font-weight: 900; }
 .section-heading > .diagnosis-complete { margin: 0; }
-.account-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; }
-.account-card h2 { margin: 4px 0; font-size: 21px; overflow-wrap: anywhere; }
 .save-state { color: #718078; font-size: 10px; }
 .save-state.saving { color: #a37200; }
 .save-state.error { color: #d74646; }
+.profile-account-actions { display: grid; gap: 12px; }
 .account-actions { display: flex; gap: 7px; }
+.profile-account-actions .account-actions { justify-content: flex-end; }
 .account-actions button, .reset-panel > div button { min-height: 36px; padding: 0 12px; border: 1px solid #dbe4de; border-radius: 10px; background: #f8faf8; color: #526159; font-size: 10px; font-weight: 900; cursor: pointer; }
 .account-actions .danger-link { border-color: #f1caca; background: #fff6f6; color: #cb4141; }
 .reset-panel { grid-column: 1 / -1; padding: 17px; border: 1px solid #f0caca; border-radius: 14px; background: #fffafa; }
@@ -667,7 +667,6 @@ body {
   .auth-brand p:last-child { font-size: 11px; }
   .auth-tabs { margin: 20px 20px 0; }
   .auth-form { padding: 19px 20px 30px; }
-  .account-card { grid-template-columns: 1fr; }
   .account-actions { width: 100%; }
   .account-actions button { flex: 1; }
 }
@@ -1374,22 +1373,12 @@ body {
   box-shadow: 0 10px 30px rgba(18,60,44,.075);
 }
 .profile-screen .card-block .eyebrow { color: var(--profile-green); }
-.profile-screen .account-card {
+.profile-screen .profile-account-actions {
   border: 1px solid #dfe9e0;
   background:
     radial-gradient(circle at 92% 0, rgba(146,199,102,.08), transparent 30%),
     #fff;
 }
-.profile-screen .account-identity { display: flex; align-items: center; gap: 15px; }
-.profile-screen .account-identity > .turini-avatar--card {
-  width: 74px;
-  padding: 4px;
-  border: 1px solid #d7e6d7;
-  border-radius: 21px;
-  background: linear-gradient(145deg, #f2faef, #fffde9);
-  box-shadow: 0 7px 18px rgba(18,60,44,.07);
-}
-.profile-screen .account-card h2 { color: var(--profile-deep); }
 .profile-screen .account-actions button {
   border-color: rgba(29,90,66,.2);
   background: var(--profile-green-soft);
@@ -1508,7 +1497,6 @@ body {
   }
   .profile-screen .profile-hero::after { right: 18px; bottom: 24px; width: 90px; }
   .profile-screen .profile-stats article { min-height: 116px; }
-  .profile-screen .account-identity > .turini-avatar--card { width: 68px; }
 }
 
 @media (max-width: 390px) {
