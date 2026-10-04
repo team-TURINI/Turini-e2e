@@ -184,6 +184,12 @@
 .turini-dress__worn-layer--bag { z-index: 2; }
 .turini-dress__worn-layer--neck { z-index: 3; }
 .turini-dress__worn-layer--glasses { z-index: 4; }
+.turini-dress__worn-layer--neck[data-item="neck:blue_scarf"],
+.turini-dress__worn-layer--neck[data-item="neck:yellow_bandana"],
+.turini-dress__adjusted-worn-overlay[data-item="neck:blue_scarf"],
+.turini-dress__adjusted-worn-overlay[data-item="neck:yellow_bandana"] { transform: translateX(1.5%); }
+.turini-dress__adjusted-worn-thumb { position: absolute; inset: 0; display: block; }
+.turini-dress__adjusted-worn-thumb img { position: absolute; inset: 0; }
 .turini-dress__hat-canvas { position: absolute; inset: 0; z-index: 5; }
 /* 1254px 원본을 가로·세로 동일하게 0.85배로 표시합니다.
    투명 캔버스까지 포함해 배치하며, 높은 모자에 맞춰 윗부분을 위로 이동합니다. */
@@ -527,3 +533,4 @@
 }
 .app-error h1 { margin: 4px 0 10px; font-size: 22px; color: var(--ink); }
 .app-error__copy { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.65; }
+
