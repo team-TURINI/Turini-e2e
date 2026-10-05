@@ -254,6 +254,21 @@ function retryVariants<T extends SchedulableQuestion>(question: T, allQuestions:
   return sameDifficulty.filter((item) => item.id !== question.id && item.type !== question.type);
 }
 
+/** 기본 문제를 모두 푼 뒤 한 번만 보여 줄 다른 유형의 오답 복습 문항을 만듭니다. */
+export function createRetryQuestion<T extends SchedulableQuestion>(
+  question: T,
+  allQuestions: T[],
+  seed = 0,
+) {
+  const variants = retryVariants(question, allQuestions);
+  if (!variants.length) return null;
+  const retry = chooseVariant(variants, seed + stringSeed(question.id), question.type);
+  return {
+    ...prepareChoices(retry, seed + stringSeed(question.id) + 17),
+    reviewKind: "retry",
+  } as T;
+}
+
 export function scheduleRetry<T extends SchedulableQuestion, S extends { questions: T[]; index: number }>(
   session: S,
   question: T,
