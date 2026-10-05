@@ -203,5 +203,7 @@ test("화면 코드가 추천 기준을 실제로 넘겨 준다", () => {
   assert.match(pageSource, /weakTags: progress\.weakTags/);
   assert.match(pageSource, /level: progress\.financeLevel === "진단 전" \? undefined : progress\.financeLevel/);
   assert.match(pageSource, /recentIds: progress\.completedIds\.slice\(-30\)/);
-  assert.match(pageSource, /progress\.pendingRetries,\s*\n\s*recommendation,/);
+  assert.match(pageSource, /const uncompletedLessonPool = mode === "lesson"/);
+  assert.match(pageSource, /progress\.studySessions,\s*\n\s*\[\],\s*\n\s*recommendation,/);
 });
+
