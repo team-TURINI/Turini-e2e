@@ -16,6 +16,18 @@ export function difficultySolvedCount(
     && question.difficulty === difficulty && completedIds.has(question.id)).map((question) => question.id)).size;
 }
 
+/**
+ * 예전 버전에서 오답 복습이 기본 10문제를 밀어내어 적게 저장된 진도를 복구합니다.
+ * 완료한 레슨은 레슨당 10문제를 끝낸 것으로 보되, 실제 저장 문항 수가 더 크면 그 값을 유지합니다.
+ */
+export function categoryProgressCount(actualSolved: number, completedLesson: number) {
+  const solved = Number.isFinite(actualSolved) ? Math.max(0, Math.floor(actualSolved)) : 0;
+  const lessons = Number.isFinite(completedLesson)
+    ? Math.min(MAX_CATEGORY_LEVEL, Math.max(0, Math.floor(completedLesson)))
+    : 0;
+  return Math.min(QUESTIONS_PER_CATEGORY, Math.max(solved, lessons * QUESTIONS_PER_CATEGORY_LEVEL));
+}
+
 export function categoryLevelForSolved(solved: number) {
   const completed = Number.isFinite(solved) ? Math.max(0, Math.floor(solved)) : 0;
   return Math.min(MAX_CATEGORY_LEVEL, Math.floor(completed / QUESTIONS_PER_CATEGORY_LEVEL) + 1);
@@ -62,6 +74,16 @@ export function categoryLessonPool<
 export const BAND_START: Record<string, number> = { 초급: 1, 중급: 5, 고급: 9 };
 export const BAND_SIZE = 4;
 
+/** 완료 레슨 기록을 사용해 각 난이도 구간의 과거 누락 진도를 복구합니다. */
+export function difficultyProgressCount(actualSolved: number, completedLesson: number, difficulty: string) {
+  const solved = Number.isFinite(actualSolved) ? Math.max(0, Math.floor(actualSolved)) : 0;
+  const from = BAND_START[difficulty] ?? 1;
+  const completed = Number.isFinite(completedLesson) ? Math.max(0, Math.floor(completedLesson)) : 0;
+  const completedInBand = Math.min(BAND_SIZE, Math.max(0, completed - from + 1));
+  const total = BAND_SIZE * QUESTIONS_PER_CATEGORY_LEVEL;
+  return Math.min(total, Math.max(solved, completedInBand * QUESTIONS_PER_CATEGORY_LEVEL));
+}
+
 /**
  * 그 난이도 구간에서 지금 들어가면 좋은 레슨 번호.
  * 이미 지난 레슨은 건너뛰고, 구간을 벗어나지 않습니다.
@@ -72,3 +94,4 @@ export function bandEntryLesson(difficulty: string, completedLessons: number, to
   const done = Number.isFinite(completedLessons) ? Math.max(0, Math.floor(completedLessons)) : 0;
   return Math.min(to, Math.max(from, done + 1));
 }
+
