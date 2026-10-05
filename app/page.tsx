@@ -29,7 +29,9 @@ import { financeLevelForRawScore } from "./diagnosis-utils";
 import {
   categoryDifficultyForLesson,
   categoryLessonPool,
+  categoryProgressCount,
   learningCompletedIds,
+  difficultyProgressCount,
   difficultySolvedCount,
   completedCategoryLessons,
   MAX_CATEGORY_LEVEL,
@@ -581,8 +583,14 @@ export default function Home() {
     questions.forEach((question) => {
       if (completedSet.has(question.id)) map[question.category] = (map[question.category] || 0) + 1;
     });
+    CATEGORIES.forEach((category) => {
+      map[category.name] = categoryProgressCount(
+        map[category.name] || 0,
+        progress.categoryLessonCompletions[category.name] || 0,
+      );
+    });
     return map;
-  }, [questions, completedSet]);
+  }, [questions, completedSet, progress.categoryLessonCompletions]);
   const defaultCategory = CATEGORIES[0];
   const activeCategory = CATEGORIES.find((category) => category.name === activeCategoryName) || defaultCategory;
   const activeCategorySolved = categoryCounts[activeCategory.name] || 0;
@@ -962,7 +970,12 @@ export default function Home() {
       const from = index * 4 + 1;
       const lessonsInBand = Math.min(4, MAX_CATEGORY_LEVEL - (from - 1));
       const total = lessonsInBand * QUESTIONS_PER_CATEGORY_LEVEL;
-      const done = Math.min(total, difficultySolvedCount(questions, completedSet, activeCategory.name, key));
+      const actualDone = difficultySolvedCount(questions, completedSet, activeCategory.name, key);
+      const done = difficultyProgressCount(
+        actualDone,
+        progress.categoryLessonCompletions[activeCategory.name] || 0,
+        key,
+      );
       const locked = completed < from - 1;
       return {
         key,
