@@ -8,6 +8,8 @@ import {
   categoryLevelForSolved,
   completedCategoryLessonsForSolved,
   completedCategoryLessons,
+  categoryProgressCount,
+  difficultyProgressCount,
   MAX_CATEGORY_LEVEL,
   QUESTIONS_PER_CATEGORY_LEVEL,
 } from "../app/category-progress.ts";
@@ -51,6 +53,20 @@ test("finishing stock lesson 7 unlocks lesson 8 even when all ten questions were
   assert.equal(completedCategoryLessons(70, 0), 7);
   assert.equal(completedCategoryLessons(65, 7.9), 7);
   assert.equal(completedCategoryLessons(65, Number.NaN), 6);
+});
+
+test("legacy progress is repaired from completed lessons without discarding larger actual counts", () => {
+  assert.equal(categoryProgressCount(17, 2), 20);
+  assert.equal(categoryProgressCount(35, 4), 40);
+  assert.equal(categoryProgressCount(43, 4), 43);
+  assert.equal(categoryProgressCount(999, 12), 120);
+
+  assert.equal(difficultyProgressCount(17, 2, "초급"), 20);
+  assert.equal(difficultyProgressCount(35, 4, "초급"), 40);
+  assert.equal(difficultyProgressCount(7, 6, "중급"), 20);
+  assert.equal(difficultyProgressCount(23, 6, "중급"), 23);
+  assert.equal(difficultyProgressCount(0, 8, "고급"), 0);
+  assert.equal(difficultyProgressCount(35, 12, "고급"), 40);
 });
 
 test("every category lesson offers all four types for twelve distinct concepts", () => {
@@ -180,3 +196,4 @@ test("diagnosis ids are excluded and difficulty progress counts only that diffic
   assert.equal(difficultySolvedCount(quizData, new Set(ids), '위험 관리', '고급'), 0);
   assert.deepEqual(learningCompletedIds(null, quizData), []);
 });
+
