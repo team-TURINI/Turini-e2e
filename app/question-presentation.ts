@@ -45,7 +45,7 @@ function topicParticle(value: string) {
 }
 
 /** 직접 입력용 질문을 답 자체가 문장 안에서 빠진 실제 빈칸 문장으로 바꿉니다. */
-export function toClozePrompt(value: string) {
+export function toClozePrompt(value: string, answer = "") {
   const prompt = stripInstructions(value).replace(/\s+/gu, " ");
 
   const inputMatch = prompt.match(/^(.+)(?:을|를)(?:\s+([^.!?]+?))?\s*입력하세요[.]?$/u);
@@ -78,8 +78,8 @@ export function toClozePrompt(value: string) {
     [/어느 수준인가요[?]?$/u, `${BLANK}.`],
     [/비중이 어떠한 자산에 배정해야 하나요[?]?$/u, `비중이 ${BLANK}인 자산에 배정해야 한다.`],
     [/커지나요, 작아지나요[?]?$/u, `${BLANK}.`],
-    [/어떻게 되나요[?]?$/u, `${BLANK}한다.`],
-    [/어떻게 변하나요[?]?$/u, `${BLANK}한다.`],
+    [/어떻게 되나요[?]?$/u, /(?:한다|된다|진다|없다|같다)$/u.test(answer.trim()) ? `${BLANK}.` : `${BLANK}한다.`],
+    [/어떻게 변하나요[?]?$/u, /(?:한다|된다|진다|없다|같다)$/u.test(answer.trim()) ? `${BLANK}.` : `${BLANK}한다.`],
     [/있나요[?]?$/u, `있는지에 대한 판단은 ${BLANK}이다.`],
     [/대상인가요[?]?$/u, `대상인지에 대한 판단은 ${BLANK}이다.`],
     [/적신호인가요[?]?$/u, `적신호인지에 대한 판단은 ${BLANK}이다.`],
@@ -171,7 +171,7 @@ export function normalizeBlankChoiceQuestions<T extends BlankQuestion>(items: T[
     if (!source) return { ...item, question: toClozePrompt(item.question) };
     return {
       ...item,
-      question: toClozePrompt(source.question),
+      question: toClozePrompt(source.question, source.answer),
       choices: buildChoices(item, source, inputs),
       answer: source.answer,
       accepted_answers: source.accepted_answers,
