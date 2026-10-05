@@ -5,9 +5,9 @@ import ChatPanel from "./chat/chat-panel";
 import "./chat/chat.css";
 import {
   conceptKey,
+  createRetryQuestion,
   planSessionQuestions,
   recordConceptReview,
-  scheduleRetry,
   type ConceptReview,
   type PendingRetry,
 } from "./quiz-scheduler";
@@ -145,6 +145,9 @@ type QuizSession = {
   profileScore: number;
   hearts: number;
   weakTags: string[];
+  phase: "main" | "retry";
+  baseQuestionCount: number;
+  retryQuestions: QuizQuestion[];
   lesson?: number;
 };
 
@@ -341,6 +344,7 @@ export default function Home() {
   const [typed, setTyped] = useState("");
   const [answered, setAnswered] = useState(false);
   const [answerCorrect, setAnswerCorrect] = useState(false);
+  const [showRetryIntro, setShowRetryIntro] = useState(false);
   const [result, setResult] = useState<QuizSession | null>(null);
   const [allocation, setAllocation] = useState<Allocation>(EMPTY_ALLOCATION);
   const [amount, setAmount] = useState(10000000);
@@ -389,7 +393,9 @@ export default function Home() {
         ? savedProgress.categoryLessonCompletions : {},
       weakTags: normalizeParentTags(savedProgress.weakTags, learningQuestions),
       conceptReviews: savedProgress.conceptReviews || {},
-      pendingRetries: savedProgress.pendingRetries || [],
+      // 이전 버전의 다음 세션 예약 오답은 사용하지 않습니다.
+      // 오답 복습은 이제 기본 10문제가 끝난 직후 같은 세션에서만 진행합니다.
+      pendingRetries: [],
       customization: normalizeCustomization(
         savedProgress.customization ?? loadCustomizationCache(payload.account.username),
       ),
@@ -643,31 +649,41 @@ export default function Home() {
       completedIds: progress.completedIds,
       recentIds: progress.completedIds.slice(-30),
     };
+    const completedIds = new Set(progress.completedIds);
+    const uncompletedLessonPool = mode === "lesson"
+      ? pool.filter((question) => !completedIds.has(question.id))
+      : pool;
+    const planningPool = uncompletedLessonPool.length >= count ? uncompletedLessonPool : pool;
+    const mainQuestions = planSessionQuestions(
+      planningPool,
+      count,
+      seed,
+      progress.conceptReviews,
+      progress.studySessions,
+      [],
+      recommendation,
+    );
     setSession({
       mode,
       title,
       category: mode === "lesson" ? pool[0].category : undefined,
-      questions: planSessionQuestions(
-        pool,
-        count,
-        seed,
-        progress.conceptReviews,
-        progress.studySessions,
-        progress.pendingRetries,
-        recommendation,
-      ),
+      questions: mainQuestions,
       index: 0,
       correct: 0,
       rawScore: 0,
       profileScore: 0,
       hearts: 5,
       weakTags: [],
+      phase: "main",
+      baseQuestionCount: mainQuestions.length,
+      retryQuestions: [],
       lesson,
     });
     setResult(null);
     setSelected("");
     setTyped("");
     setAnswered(false);
+    setShowRetryIntro(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -687,11 +703,25 @@ export default function Home() {
 
   const startDiagnosis = () => {
     if (diagnosticQuestions.length !== 21) return;
-    setSession({ mode: "diagnosis", title: "금융 수준·성향 진단", questions: diagnosticQuestions, index: 0, correct: 0, rawScore: 0, profileScore: 0, hearts: 5, weakTags: [] });
+    setSession({
+      mode: "diagnosis",
+      title: "금융 수준·성향 진단",
+      questions: diagnosticQuestions,
+      index: 0,
+      correct: 0,
+      rawScore: 0,
+      profileScore: 0,
+      hearts: 5,
+      weakTags: [],
+      phase: "main",
+      baseQuestionCount: diagnosticQuestions.length,
+      retryQuestions: [],
+    });
     setResult(null);
     setSelected("");
     setTyped("");
     setAnswered(false);
+    setShowRetryIntro(false);
   };
 
   const submitAnswer = (event?: FormEvent) => {
@@ -708,40 +738,43 @@ export default function Home() {
         : isChoiceCorrect(value, question.answer);
     const point = correct && question.diagnostic_item ? DIAG_POINTS[question.diagnostic_item] || 0 : 0;
     const profilePoint = question.isProfile ? question.choiceScores?.[profileChoice] || 0 : 0;
-    const retryPlan = !correct && session.mode !== "diagnosis"
-      ? scheduleRetry(session, question, questions, progress.pendingRetries)
+    const isRetry = question.reviewKind === "retry";
+    const retryQuestion = !correct && !isRetry && session.mode !== "diagnosis"
+      ? createRetryQuestion(question, questions, session.index + progress.studySessions * 31)
       : null;
-    const deferredRetry = retryPlan?.deferred;
     setAnswerCorrect(correct);
     setAnswered(true);
     setSession((current) => {
       if (!current) return current;
-      const updated = {
+      const hasQueuedConcept = retryQuestion
+        ? current.retryQuestions.some((item) => conceptKey(item) === conceptKey(retryQuestion))
+        : false;
+      return {
         ...current,
-        correct: current.correct + (correct && !question.isProfile ? 1 : 0),
+        // 결과 점수와 XP는 준비된 기본 문제만 계산하고 오답 복습에는 중복 지급하지 않습니다.
+        correct: current.correct + (correct && !question.isProfile && !isRetry ? 1 : 0),
         rawScore: current.rawScore + point,
         profileScore: current.profileScore + profilePoint,
-        hearts: correct ? current.hearts : Math.max(0, current.hearts - 1),
-        weakTags: !correct && (question.parent_tag || question.weakness_tag)
+        hearts: isRetry || correct ? current.hearts : Math.max(0, current.hearts - 1),
+        weakTags: !correct && !isRetry && (question.parent_tag || question.weakness_tag)
           ? [...new Set([...current.weakTags, question.parent_tag || question.weakness_tag])]
           : current.weakTags,
+        retryQuestions: retryQuestion && !hasQueuedConcept
+          ? [...current.retryQuestions, retryQuestion]
+          : current.retryQuestions,
       };
-      return retryPlan ? { ...updated, questions: retryPlan.session.questions } : updated;
     });
     if (!question.isProfile && session.mode !== "diagnosis") {
-      setProgress((current) => {
-        const reviewed = recordConceptReview(current, question, correct);
-        if (!deferredRetry || reviewed.pendingRetries.some((item) => item.key === deferredRetry.key)) return reviewed;
-        return { ...reviewed, pendingRetries: [...reviewed.pendingRetries, deferredRetry] };
-      });
+      setProgress((current) => recordConceptReview(current, question, correct));
     }
   };
 
   const finishSession = (finished: QuizSession) => {
     // 진단 18문항은 학습 진도·푼 문제 수에 포함하지 않습니다.
+    const mainQuestions = finished.questions.slice(0, finished.baseQuestionCount);
     const knowledgeQuestions = finished.mode === "diagnosis"
       ? []
-      : finished.questions.filter((question) => !question.isProfile);
+      : mainQuestions.filter((question) => !question.isProfile);
     const ids = knowledgeQuestions.map((question) => question.id);
     const xpGain = finished.mode === "diagnosis" ? finished.correct * 5 : finished.correct * 10;
     let financeLevel = progress.financeLevel;
@@ -756,9 +789,9 @@ export default function Home() {
       level: Math.max(current.level, Math.floor((current.xp + xpGain) / 100) + 1),
       completedIds: [...new Set([...current.completedIds, ...ids])],
       completedLessons: finished.lesson ? [...new Set([...current.completedLessons, finished.lesson])] : current.completedLessons,
-      categoryLessonCompletions: finished.lesson && finished.questions[0]?.category
+      categoryLessonCompletions: finished.lesson && mainQuestions[0]?.category
         ? { ...current.categoryLessonCompletions,
-            [finished.questions[0].category]: Math.max(current.categoryLessonCompletions[finished.questions[0].category] || 0, finished.lesson) }
+            [mainQuestions[0].category]: Math.max(current.categoryLessonCompletions[mainQuestions[0].category] || 0, finished.lesson) }
         : current.categoryLessonCompletions,
       correct: current.correct + (finished.mode === "diagnosis" ? 0 : finished.correct),
       attempts: current.attempts + knowledgeQuestions.length,
@@ -775,10 +808,33 @@ export default function Home() {
     setResult(finished);
     setSession(null);
     setAnswered(false);
+    setShowRetryIntro(false);
+  };
+
+  const startRetryReview = () => {
+    if (!session || session.retryQuestions.length === 0) return;
+    setSession({
+      ...session,
+      phase: "retry",
+      questions: [...session.questions.slice(0, session.baseQuestionCount), ...session.retryQuestions],
+      index: session.baseQuestionCount,
+    });
+    setShowRetryIntro(false);
+    setSelected("");
+    setTyped("");
+    setAnswered(false);
+    setAnswerCorrect(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const nextQuestion = () => {
     if (!session) return;
+    const finishedMainQuestions = session.phase === "main"
+      && session.index >= session.baseQuestionCount - 1;
+    if (finishedMainQuestions && session.retryQuestions.length > 0) {
+      setShowRetryIntro(true);
+      return;
+    }
     if (session.index >= session.questions.length - 1) {
       finishSession(session);
       return;
@@ -951,6 +1007,22 @@ export default function Home() {
     );
   }
 
+  if (session && showRetryIntro) {
+    return (
+      <TuriniAvatarProvider customization={progress.customization}>
+      <main className="result-stage">
+        <section className="result-card-page retry-intro-card">
+          <TuriniAvatar motion="reading" className="turini-retry-intro" />
+          <p className="eyebrow">기본 {session.baseQuestionCount}문제 완료</p>
+          <h1>이제 오답 복습을 시작해요</h1>
+          <p>틀린 {session.retryQuestions.length}문제를 다른 유형으로 한 번씩 다시 풀어요.</p>
+          <button className="primary-button" onClick={startRetryReview}>오답 복습 시작</button>
+        </section>
+      </main>
+      </TuriniAvatarProvider>
+    );
+  }
+
   if (session) {
     const question = session.questions[session.index];
     const isText = question.type.includes("직접입력");
@@ -966,7 +1038,10 @@ export default function Home() {
             : { label: "직접 입력", copy: inputGuide.copy };
     const displayQuestion = formatQuestionPrompt(question.type, question.question);
     const chosen = isText ? typed : selected;
-    const progressWidth = ((session.index + (answered ? 1 : 0)) / session.questions.length) * 100;
+    const isRetryPhase = session.phase === "retry";
+    const visibleIndex = isRetryPhase ? session.index - session.baseQuestionCount + 1 : session.index + 1;
+    const visibleTotal = isRetryPhase ? session.retryQuestions.length : session.baseQuestionCount;
+    const progressWidth = ((visibleIndex - 1 + (answered ? 1 : 0)) / Math.max(1, visibleTotal)) * 100;
     return (
       <TuriniAvatarProvider customization={progress.customization}>
       <main className="quiz-stage">
@@ -977,7 +1052,7 @@ export default function Home() {
             <strong className="heart-count">♥ {session.hearts}</strong>
           </header>
           <div className="quiz-meta"><span>{question.category}</span><span>{question.difficulty}</span>{question.reviewKind ? <span>{question.reviewKind === "retry" ? "오답 복습" : "복습"}</span> : null}</div>
-          <div className="quiz-count"><strong>{session.index + 1}</strong> / {session.questions.length}<span>+10 XP</span></div>
+          <div className="quiz-count"><strong>{visibleIndex}</strong> / {visibleTotal}<span>{isRetryPhase ? "오답 복습" : "+10 XP"}</span></div>
           <p id="question-guide" className="question-guide"><b>{questionGuide.label}</b><span>{questionGuide.copy}</span></p>
           <h1 className="quiz-question">{displayQuestion}</h1>
           {isText ? (
@@ -1014,7 +1089,13 @@ export default function Home() {
               {/* 출처는 데이터에 그대로 보관하고(question.source_url·source_name) 사용자 화면에는 보여 주지 않습니다. */}
             </aside>
           ) : null}
-          <button className="primary-button quiz-submit" disabled={!chosen} onClick={answered ? nextQuestion : () => submitAnswer()}>{answered ? (session.index === session.questions.length - 1 ? "결과 보기" : "다음 문제") : "정답 확인"}</button>
+          <button className="primary-button quiz-submit" disabled={!chosen} onClick={answered ? nextQuestion : () => submitAnswer()}>{answered
+            ? session.phase === "main" && session.index >= session.baseQuestionCount - 1 && session.retryQuestions.length
+              ? "오답 복습 안내"
+              : session.index === session.questions.length - 1
+                ? "결과 보기"
+                : "다음 문제"
+            : "정답 확인"}</button>
         </section>
       </main>
       </TuriniAvatarProvider>
@@ -1022,7 +1103,9 @@ export default function Home() {
   }
 
   if (result) {
-    const total = result.questions.filter((question) => !question.isProfile).length;
+    const total = result.questions
+      .slice(0, result.baseQuestionCount)
+      .filter((question) => !question.isProfile).length;
     const percent = Math.round((result.correct / Math.max(1, total)) * 100);
     const resultCategory = result.category;
     const nextLesson = result.mode === "lesson" && result.lesson && result.lesson < MAX_CATEGORY_LEVEL
@@ -1048,7 +1131,6 @@ export default function Home() {
       <TuriniAvatarProvider customization={progress.customization}>
       <main className="result-stage">
         <section className="result-card-page">
-          <div className="confetti">◆　●　✦　◆　●</div>
           <TuriniAvatar motion="celebrate" className="turini-lesson-result" replayKey={result.correct} />
           <p className="eyebrow">{result.mode === "diagnosis" ? "진단 완료" : "레슨 완료"}</p>
           <h1>{result.mode === "diagnosis" ? `${progress.financeLevel} · ${progress.tendency}` : percent >= 80 ? "완벽해요, 레벨 업!" : "오늘도 한 걸음 성장!"}</h1>
