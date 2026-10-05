@@ -338,7 +338,8 @@
 
 /* 레슨 결과 */
 .result-card-page { overflow: visible; }
-.turini-lesson-result { width: 190px; margin: 0 auto -6px; }
+.turini-lesson-result { width: 190px; margin: -32px auto 16px; }
+.turini-retry-intro { width: 172px; margin: -12px auto 14px; }
 
 /* 미래 자산 배너 */
 .future-banner { grid-template-columns: minmax(0, 1fr) 132px; overflow: visible; }
@@ -475,3 +476,4 @@
   .coach-nudge { grid-template-columns: 80px 1fr; }
   .turini-nudge { width: 80px; }
 }
+
