@@ -13,7 +13,7 @@ import {
 } from "./quiz-scheduler";
 import { directInputGuide, isAnswerCorrect, isChoiceCorrect } from "./answer-utils";
 import { answerLinkedExplanation, friendlyizeExplanation } from "./explanation-utils";
-import { formatQuestionPrompt } from "./question-presentation";
+import { formatQuestionPrompt, normalizeBlankChoiceQuestions } from "./question-presentation";
 import LearningMap, { bandEntryLesson } from "./learning-map";
 import DifficultySelect, { DIFFICULTY_COPY, type DifficultyCard } from "./difficulty-select";
 import TuriniAvatar, { BasicReadingTurini, QuizThinkingTurini, TuriniAvatarProvider, TuriniDressUp, CustomizedTuriniAvatar } from "./turini-avatar";
@@ -441,7 +441,7 @@ export default function Home() {
         const quizOverrides = overrideResponse.ok
           ? await overrideResponse.json() as Record<string, QuizOverride>
           : {};
-        const quizItems = applyQuizOverrides(baseQuizItems, quizOverrides);
+        const quizItems = normalizeBlankChoiceQuestions(applyQuizOverrides(baseQuizItems, quizOverrides));
         const diagnosticItems = await diagnosisResponse.json() as DiagnosticQuestionRow[];
         // 문제 데이터가 비어 있어도 앱은 뜨고, 대신 이유를 알려 줍니다.
         if (!Array.isArray(quizItems) || quizItems.length === 0) {
