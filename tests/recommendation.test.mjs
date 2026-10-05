@@ -206,4 +206,3 @@ test("화면 코드가 추천 기준을 실제로 넘겨 준다", () => {
   assert.match(pageSource, /const uncompletedLessonPool = mode === "lesson"/);
   assert.match(pageSource, /progress\.studySessions,\s*\n\s*\[\],\s*\n\s*recommendation,/);
 });
-
