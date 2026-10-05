@@ -65,6 +65,25 @@ test("모든 해설은 현재 문항의 정답이나 OX 판정을 먼저 밝혀 
   }
 });
 
+test("화면에 표시되는 해설은 보기 번호처럼 보이는 번호 나열을 사용하지 않는다", () => {
+  for (const question of questions) {
+    assert.doesNotMatch(
+      question.explanation,
+      /[①②③④]|(?:보기|선택지|정답(?:은|이)?)\s*(?:[1-4]|[①②③④])|(?:[1-4]|[①②③④])\s*번/u,
+      question.id,
+    );
+  }
+});
+
+test("빈칸에 정답을 넣어도 서술어가 이중으로 붙지 않는다", () => {
+  const blanks = presentedQuestions.filter((question) => question.type === "빈칸선택");
+  for (const question of blanks) {
+    const completed = formatQuestionPrompt(question.type, question.question).replace("_____", question.answer);
+    assert.doesNotMatch(completed, /(?:한다|된다|진다|없다|같다)한다/u, `${question.id}: ${completed}`);
+    assert.doesNotMatch(completed, /이다이다/u, `${question.id}: ${completed}`);
+  }
+});
+
 test("각 문항은 앞 문제나 보이지 않는 사례에 의존하지 않는다", () => {
   for (const question of questions) {
     assert.doesNotMatch(question.question, /앞서|앞 문제|이전 문제|제시된 사례/u, question.id);
