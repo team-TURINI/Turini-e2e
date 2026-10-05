@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 // turini-sprite.css 를 먼저 두면, 자리별 크기를 정하는 turini-character.css 의
 // `.turini-quiz` 같은 규칙이 스프라이트의 기본 폭보다 우선합니다.
@@ -9,16 +8,6 @@ import "./turini-character.css";
 import "./learning-map.css";
 import "./turini-avatar.css";
 import "./difficulty-select.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Turini | 배우고 설계하는 금융 습관",
@@ -42,11 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" translate="no" className="notranslate" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased notranslate`}
-      >
+      <body className="antialiased notranslate">
         {children}
       </body>
     </html>
   );
 }
+
