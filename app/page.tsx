@@ -1192,6 +1192,7 @@ export default function Home() {
                 <TuriniAvatar scene motion="greet" className="turini-daily" label="나의 투리니" />
                 <span className="daily-play" aria-hidden="true">→</span>
               </button>
+              <ChatPanel key={account.username} onOpenPortfolio={() => navigate("portfolio")} />
               {progress.weakTags.length ? <section className="card-block weak-tag-card"><div className="section-heading"><div><p className="eyebrow">PERSONALIZED LEARNING</p><h2>내 취약 상위 태그</h2></div><span>20개 상위 태그 기준</span></div><p>진단과 오답에서 확인된 태그예요. 태그를 누르면 관련 문제가 먼저 나와요.</p><div>{progress.weakTags.map((tag) => <button key={tag} onClick={() => startWeakTag(tag)}>{tag}</button>)}</div></section> : null}
               <section className="continue-section">
                 <div className="section-heading"><div><p className="eyebrow">이어서 학습하기</p><h2>멈춘 곳에서 계속해요</h2></div></div>
@@ -1207,7 +1208,6 @@ export default function Home() {
               </button>
               <section className="mission-card"><div><span className="mission-icon">🎁</span><div><p className="eyebrow">학습 미션</p><h3>퀴즈 5회 완료하기</h3></div></div><strong>{Math.min(5, progress.studySessions)} / 5</strong><div className="progress-track"><span style={{ width: `${Math.min(100, progress.studySessions * 20)}%` }} /></div></section>
               <section className="content-section"><div className="section-heading"><div><p className="eyebrow">빠른 학습</p><h2>어떤 주제부터 시작할까요?</h2></div><button onClick={() => navigate("category")}>전체 보기 →</button></div><div className="quick-categories">{CATEGORIES.slice(0, 3).map((category) => <button key={category.name} className={`quick-card ${category.color}`} onClick={() => openDifficulty(category.name)}><span>{category.icon}</span><div><strong>{category.name}</strong><small>{category.copy}</small></div><b>→</b></button>)}</div></section>
-              <ChatPanel key={account.username} onOpenPortfolio={() => navigate("portfolio")} />
             </div>
           )}
 
