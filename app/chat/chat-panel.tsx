@@ -82,8 +82,8 @@ export default function ChatPanel({ onOpenPortfolio }: ChatPanelProps) {
     finally { setBusy(false); }
   }
 
-  return <section className="rag-chat card-block" aria-label="투리니 금융 채팅">
-    <header className="rag-chat-header"><h2>금융 개념 물어보기</h2>
+  return <section id="rag-chat" className="rag-chat card-block" aria-label="투리니 금융 채팅">
+    <header className="rag-chat-header"><h2>투리니에게 질문</h2>
       <button disabled={busy} onClick={() => void openConversation("")}>새 대화</button></header>
     <label className="rag-chat-history">지난 대화
       <select value={id ?? ""} disabled={busy} onChange={(e) => void openConversation(e.target.value)}>

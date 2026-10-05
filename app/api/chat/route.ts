@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/app/server/auth";
 import { databaseErrorResponse, getSql } from "@/app/server/db";
 import { askRag, requireRagConfig } from "@/app/server/rag-client";
-import { parseChatInput, portfolioForRag } from "@/app/rag-contract";
+import { parseChatInput } from "@/app/rag-contract";
 
 export const runtime = "nodejs";
 
@@ -70,8 +70,9 @@ export async function POST(request: Request) {
       return Response.json({ error: existing[0] ? "이 대화의 답변을 기다려 주세요." : "대화를 찾을 수 없어요." }, { status: existing[0] ? 409 : 404 });
     }
     acquired = true;
+    // 홈 채팅은 금융 개념 전용입니다. 개인 포트폴리오는 별도 AI 코치에서만 다룹니다.
     const reply = await askRag({ user_id: user.id, question: input.question, conversation_id: id,
-      state: rows[0].state ?? null, portfolio: portfolioForRag(user.progress, user.portfolio) });
+      state: rows[0].state ?? null, portfolio: null });
     const saved = await sql`UPDATE turini_rag_conversations
       SET state=${JSON.stringify(reply.state)}::jsonb,
           messages=messages || ${JSON.stringify(reply.messages)}::jsonb,
@@ -88,3 +89,4 @@ export async function POST(request: Request) {
       WHERE id=${id}::uuid AND user_id=${user.id} AND lease_token=${lease}::uuid`.catch(() => undefined);
   }
 }
+
