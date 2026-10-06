@@ -232,8 +232,8 @@ export type SpriteSlot = (typeof SPRITE_SLOTS)[number];
 
 /** 착용 원본에서 중심이 왼쪽으로 치우친 아이템만 캔버스 너비 기준 %만큼 보정합니다. */
 export const ITEM_X_OFFSET: Readonly<Record<string, number>> = {
-  "neck:blue_scarf": 2.25,
-  "neck:yellow_bandana": 2.25,
+  "neck:blue_scarf": 2.75,
+  "neck:yellow_bandana": 2.75,
 };
 
 export function itemXOffset(id: string) {
