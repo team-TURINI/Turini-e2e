@@ -75,6 +75,8 @@ export type TuriniAvatarProps = {
   scene?: boolean;
   /** 숨쉬기·깜박임 */
   animated?: boolean;
+  /** gauge 동작의 바늘 위치 (0~1) */
+  level?: number;
 };
 
 export default function TuriniAvatar({
@@ -85,6 +87,7 @@ export default function TuriniAvatar({
   label = "나의 투리니",
   decorative = false,
   animated = true,
+  level,
 }: TuriniAvatarProps) {
   return (
     <span className={`turini-avatar turini-avatar--base turini-avatar--motion ${className}`.trim()}
@@ -92,7 +95,7 @@ export default function TuriniAvatar({
       role={decorative ? undefined : "img"} aria-label={decorative ? undefined : label}
       aria-hidden={decorative || undefined}>
       <TuriniMotion className="turini-avatar__motion" motion={motion} replayKey={replayKey}
-        holdLast={holdLast} animated={animated} />
+        holdLast={holdLast} animated={animated} level={level} />
     </span>
   );
 }
@@ -493,4 +496,5 @@ function LockBadge() {
     </span>
   );
 }
+
 

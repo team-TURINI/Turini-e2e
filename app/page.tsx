@@ -1189,7 +1189,7 @@ export default function Home() {
               </section>
               <button type="button" className="daily-learning-card" onClick={startDaily} disabled={!questions.length} aria-label={progress.weakTags.length ? "취약 태그 중심 오늘의 10문제 시작" : "오늘의 10문제 시작"}>
                 <div className="daily-learning-copy"><span>오늘의 맞춤 학습</span><strong>{progress.weakTags.length ? "취약 태그부터 10문제" : "오늘의 10문제"}</strong><small>{progress.weakTags.length ? `${progress.weakTags.slice(0, 2).join(" · ")} 우선 추천` : "최대 100 XP · 약 5분"}</small></div>
-                <TuriniAvatar scene motion="greet" className="turini-daily" label="나의 투리니" />
+                <TuriniAvatar scene motion="study" className="turini-daily" label="나의 투리니" />
                 <span className="daily-play" aria-hidden="true">→</span>
               </button>
               {progress.weakTags.length ? <section className="card-block weak-tag-card"><div className="section-heading"><div><p className="eyebrow">PERSONALIZED LEARNING</p><h2>내 취약 상위 태그</h2></div><span>20개 상위 태그 기준</span></div><p>진단과 오답에서 확인된 태그예요. 태그를 누르면 관련 문제가 먼저 나와요.</p><div>{progress.weakTags.map((tag) => <button key={tag} onClick={() => startWeakTag(tag)}>{tag}</button>)}</div></section> : null}
@@ -1255,7 +1255,7 @@ export default function Home() {
           {view === "portfolio" && (
             <div className="screen portfolio-screen">
               <PageTitle eyebrow="MY PORTFOLIO" title="내 포트폴리오 설계" copy="여섯 자산의 현재 비중을 입력하면 성향 적합도와 조정 방향을 바로 알려드려요." />
-              <section className="portfolio-intro"><div><span className="pill">핵심 기능</span><h2>비중을 입력하고<br />투리니의 코칭 받기</h2><p>개별 종목 추천이 아닌 자산배분 학습용 분석이에요.</p></div><div className="portfolio-mascot-frame"><TuriniAvatar motion="reading" className="turini-portfolio" /></div></section>
+              <section className="portfolio-intro"><div><span className="pill">핵심 기능</span><h2>비중을 입력하고<br />투리니의 코칭 받기</h2><p>개별 종목 추천이 아닌 자산배분 학습용 분석이에요.</p></div><div className="portfolio-mascot-frame"><TuriniAvatar motion="coach" className="turini-portfolio" /></div></section>
               <section className="portfolio-builder card-block">
                 <div className="builder-header"><div><p className="eyebrow">STEP 1</p><h2>현재 자산 비중</h2></div><div className={`sum-badge ${validateAllocation(allocation) ? "valid" : ""}`}><span>합계</span><strong>{sumAllocation(allocation)}%</strong></div></div>
                 <div className="preset-row"><span>성향 프리셋</span>{(["안정형", "중립형", "공격형"] as const).map((type) => <button key={type} className={progress.tendency === type ? "active" : ""} onClick={() => applyPreset(type)}>{type}</button>)}</div>
@@ -1558,7 +1558,7 @@ function WealthPlanner({ state, setState }: { state: WealthPlannerState; setStat
   return <>
     <section className="asset-planner-hero">
       <div><span>투리니 자산 플래너</span><h2>오늘의 선택을<br />미래의 숫자로</h2><p>저축 습관을 바꾸면 목표가 얼마나 가까워지는지 바로 비교해요.</p></div>
-      <div className="asset-planner-mascot"><TuriniAvatar customization={BASIC_BACKPACK_CUSTOMIZATION} motion="idle" className="turini-planner" decorative /></div>
+      <div className="asset-planner-mascot"><TuriniAvatar customization={BASIC_BACKPACK_CUSTOMIZATION} motion="save" className="turini-planner" decorative /></div>
     </section>
     <div className="planner-switch" role="tablist" aria-label="자산 플래너 메뉴">
       <button role="tab" aria-selected={tab === "future"} className={tab === "future" ? "active" : ""} onClick={() => setTab("future")}><span>↗</span>내 돈의 미래</button>
@@ -1636,7 +1636,7 @@ function PortfolioResults({ result, allocation, tab, setTab, aiFeedback, aiFeedb
     no_feasible_target: "맞는 조정안을 찾지 못했어요",
   };
   return <section id="portfolio-result" className="portfolio-result card-block">
-    <div className="result-hero"><div><p>서비스 변동성 위험등급</p><strong>{result.riskGrade}<small>등급</small></strong><span>{result.riskGradeName} · 손실 위험(VaR) {result.riskVar}% · 연환산 {result.riskScore}%</span></div><TuriniAvatar motion="celebrate" className="turini-score" replayKey={result.riskGrade} /></div>
+    <div className="result-hero"><div><p>서비스 변동성 위험등급</p><strong>{result.riskGrade}<small>등급</small></strong><span>{result.riskGradeName} · 손실 위험(VaR) {result.riskVar}% · 연환산 {result.riskScore}%</span></div><TuriniAvatar motion="gauge" className="turini-score" replayKey={result.riskGrade} level={(Number(result.riskGrade) - 1) / 5} /></div>
     <div className="score-cards verdict-cards"><article><span>연환산 변동성</span><strong>{result.riskScore}<small>%</small></strong><small>공분산으로 계산한 위험값이에요 · 공식 상품등급은 아니에요</small></article><article><span>성향 판정</span><strong className="verdict-text">{result.typeFitLabel}</strong><small>기준 범위 {result.profileRange[0].toFixed(2)}~{result.profileRange[1].toFixed(2)}%</small></article><article><span>기간 판정</span><strong className="verdict-text">{result.horizonFitLabel}</strong><small>허용 상한 {result.horizonCap.toFixed(2)}%</small></article></div>
     <div className="portfolio-tabs"><button className={tab === "summary" ? "active" : ""} onClick={() => setTab("summary")}>요약</button><button className={tab === "rebalance" ? "active" : ""} onClick={() => setTab("rebalance")}>리밸런싱</button><button className={tab === "detail" ? "active" : ""} onClick={() => setTab("detail")}>상세 분석</button><button className={tab === "coach" ? "active" : ""} onClick={() => setTab("coach")}>AI 코치</button></div>
     {tab === "summary" && <div className="tab-panel"><div className="coach-banner"><BasicReadingTurini className="turini-coach" decorative /><div><b>투리니 코치의 한마디</b><p>{result.coach}</p></div></div><div className="analysis-columns"><article className="good"><h3>강점 · {result.strengths.length}개</h3>{result.strengths.length ? <ul>{result.strengths.map((item) => <li key={item}>{item}</li>)}</ul> : <p>세 가지 검증 축에서 확정할 수 있는 강점이 아직 없어요.</p>}</article><article className="care"><h3>확인할 점</h3>{result.cautions.length ? <ul>{result.cautions.map((item) => <li key={item}>{item}</li>)}</ul> : <p>지금은 따로 확인할 점이 없어요.</p>}</article></div></div>}
@@ -1646,4 +1646,5 @@ function PortfolioResults({ result, allocation, tab, setTab, aiFeedback, aiFeedb
     <p className="result-disclaimer">이 결과는 과거 약 3년의 문서화된 변동성 스냅샷을 사용한 금융 학습용 자산배분 예시예요. 공식 금융상품 위험등급이나 특정 상품 추천, 매수·매도 권유, 미래 손실 예측은 아니에요. 원시 시계열은 아직 재현 검증 전이고 세금·수수료·상품별 위험은 반영하지 않았어요.</p>
   </section>;
 }
+
 

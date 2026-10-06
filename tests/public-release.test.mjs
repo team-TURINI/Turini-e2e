@@ -120,9 +120,9 @@ test("포트폴리오 결과 문구는 ~해요\/~이에요체로 맞춘다", () 
 });
 
 test("홈 맞춤 학습은 사용자 꾸미기를 복원하고 자산 안내만 기본 캐릭터를 쓴다", () => {
-  assert.match(pageSource, /<TuriniAvatar scene motion="greet" className="turini-daily" label="나의 투리니"/);
+  assert.match(pageSource, /<TuriniAvatar scene motion="study" className="turini-daily" label="나의 투리니"/);
   assert.match(pageSource, /bag: "bag:green_original"/);
-  assert.match(pageSource, /customization=\{BASIC_BACKPACK_CUSTOMIZATION\} motion="idle" className="turini-planner" decorative/);
+  assert.match(pageSource, /customization=\{BASIC_BACKPACK_CUSTOMIZATION\} motion="save" className="turini-planner" decorative/);
   assert.match(pageSource, /<BasicReadingTurini className="turini-nudge" decorative/);
   assert.doesNotMatch(pageSource, /<TuriniAvatar motion="thinking" className="turini-planner"/);
   assert.doesNotMatch(pageSource, /<TuriniAvatar motion="reading" className="turini-nudge"/);
@@ -203,4 +203,5 @@ test("일반 화면 캐릭터는 스프라이트 로딩 없이 관절 애니메�
     assert.ok(existsSync(new URL(`../public/assets/turini-motion/${part}.webp`, import.meta.url)), `${part} 파츠 없음`);
   }
 });
+
 
