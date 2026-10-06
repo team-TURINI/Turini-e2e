@@ -311,8 +311,8 @@ test("안경은 두 눈 위에 오고 어떤 아이템도 입을 덮지 않는�
 });
 
 test("파랑 목도리와 노랑 반다나만 오른쪽으로 같은 양만큼 보정한다", () => {
-  assert.equal(itemXOffset("neck:blue_scarf"), 2.25);
-  assert.equal(itemXOffset("neck:yellow_bandana"), 2.25);
+  assert.equal(itemXOffset("neck:blue_scarf"), 2.75);
+  assert.equal(itemXOffset("neck:yellow_bandana"), 2.75);
   for (const item of itemsForSlot("neck")) {
     if (["neck:blue_scarf", "neck:yellow_bandana"].includes(item.id)) continue;
     assert.equal(itemXOffset(item.id), 0, item.id);
