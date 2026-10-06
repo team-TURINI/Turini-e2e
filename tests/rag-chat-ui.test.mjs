@@ -22,23 +22,21 @@ test("RAG waiting state uses an accessible animated three-dot assistant bubble",
   assert.match(chatCss, /prefers-reduced-motion: reduce/);
 });
 
-test("concept RAG lives on home while the portfolio screen keeps its own AI coach", () => {
+test("the question panel lives on the portfolio screen with its separate AI coach", () => {
   const home = pageSource.indexOf('{view === "home"');
   const portfolio = pageSource.indexOf('{view === "portfolio"');
-  const chat = pageSource.indexOf("<ChatPanel", home);
-  assert.ok(home >= 0 && chat > home && chat < portfolio);
+  const assets = pageSource.indexOf('{view === "assets"');
+  const chat = pageSource.indexOf("<ChatPanel", portfolio);
+  assert.ok(home >= 0 && portfolio > home && chat > portfolio && chat < assets);
+  assert.equal(pageSource.slice(home, portfolio).includes("<ChatPanel"), false);
   assert.equal(pageSource.indexOf("<ChatPanel", chat + 1), -1);
   assert.match(pageSource, />AI 코치<\/button>/);
 });
 
-test("the concept question panel stays near the top of home instead of disappearing below all cards", () => {
-  const daily = pageSource.indexOf('className="daily-learning-card"');
-  const chat = pageSource.indexOf("<ChatPanel", daily);
-  const weak = pageSource.indexOf('className="card-block weak-tag-card"', daily);
-  const quick = pageSource.indexOf('className="content-section"', daily);
-  assert.ok(daily >= 0 && chat > daily && chat < weak && chat < quick);
+test("the portfolio question panel keeps its visible title and input", () => {
   assert.match(panelSource, /id="rag-chat"/);
   assert.match(panelSource, /<h2>투리니에게 질문<\/h2>/);
+  assert.match(panelSource, /id="rag-question"/);
 });
 
 test("concept RAG and personal portfolio coaching are separated at the gateway", () => {

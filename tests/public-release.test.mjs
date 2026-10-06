@@ -24,6 +24,13 @@ test("한국어 금융 용어가 브라우저 자동 번역으로 오염되지 �
   assert.doesNotMatch(pageSource, /연극 학습|처벌|자금\/ETF|괜히투자|연극배우기|움직여서/);
 });
 
+test("앱 전체와 입력 요소는 하나의 한국어 글꼴 스택을 사용한다", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.doesNotMatch(layoutSource, /next\/font\/google|Geist_Mono|Geist\(/);
+  assert.match(css, /body \{[^}]*font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;/s);
+  assert.match(css, /button, input, select, textarea, option \{ font: inherit; font-family: inherit; \}/);
+});
+
 test("signed-in pages display the active account ID", () => {
   assert.match(pageSource, /account\.username/);
   assert.match(pageSource, /안녕하세요, \{account\.username\}님/);

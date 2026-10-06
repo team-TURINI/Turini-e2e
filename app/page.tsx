@@ -1192,7 +1192,6 @@ export default function Home() {
                 <TuriniAvatar scene motion="greet" className="turini-daily" label="나의 투리니" />
                 <span className="daily-play" aria-hidden="true">→</span>
               </button>
-              <ChatPanel key={account.username} onOpenPortfolio={() => navigate("portfolio")} />
               {progress.weakTags.length ? <section className="card-block weak-tag-card"><div className="section-heading"><div><p className="eyebrow">PERSONALIZED LEARNING</p><h2>내 취약 상위 태그</h2></div><span>20개 상위 태그 기준</span></div><p>진단과 오답에서 확인된 태그예요. 태그를 누르면 관련 문제가 먼저 나와요.</p><div>{progress.weakTags.map((tag) => <button key={tag} onClick={() => startWeakTag(tag)}>{tag}</button>)}</div></section> : null}
               <section className="continue-section">
                 <div className="section-heading"><div><p className="eyebrow">이어서 학습하기</p><h2>멈춘 곳에서 계속해요</h2></div></div>
@@ -1292,6 +1291,7 @@ export default function Home() {
                 <button className="primary-button" disabled={!allocationReady} onClick={runPortfolioAnalysis}>{allocationReady ? "포트폴리오 분석하기" : `합계를 100%로 맞춰주세요 (${allocationTotal}%)`}</button>
               </div>
               {portfolioResult && <PortfolioResults result={portfolioResult} allocation={allocation} tab={portfolioTab} setTab={setPortfolioTab} aiFeedback={aiFeedback} aiFeedbackLoading={aiFeedbackLoading} aiFeedbackError={aiFeedbackError} retryAiFeedback={() => void requestAiFeedback(portfolioResult)} />}
+              <ChatPanel key={account.username} />
             </div>
           )}
 
