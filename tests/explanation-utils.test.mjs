@@ -8,7 +8,7 @@ const questions = JSON.parse(
   await readFile(new URL("../public/data/quizData_864_FINAL.json", import.meta.url), "utf8"),
 );
 const diagnosticQuestions = JSON.parse(
-  await readFile(new URL("../public/data/diagnostic_quiz.json", import.meta.url), "utf8"),
+  await readFile(new URL("../public/data/diagnostic_quiz_level_style_24.json", import.meta.url), "utf8"),
 );
 
 test("해설의 평서형과 격식체를 투린이 해요체로 바꾼다", () => {
@@ -26,7 +26,9 @@ test("이미 친근한 해설과 숫자는 그대로 둔다", () => {
 test("실제 학습·진단 문항 화면에 반말과 격식체가 남지 않는다", () => {
   const allExplanations = [
     ...questions.map((question) => ({ id: question.id, explanation: question.explanation })),
-    ...diagnosticQuestions.map((question) => ({ id: `DIAG_${question.diagnostic_quiz_id}`, explanation: question.explanation })),
+    ...diagnosticQuestions
+      .filter((question) => typeof question.explanation === "string")
+      .map((question) => ({ id: `DIAG_${question.diagnostic_quiz_id}`, explanation: question.explanation })),
   ];
   for (const question of allExplanations) {
     const rendered = friendlyizeExplanation(question.explanation);
@@ -42,7 +44,9 @@ test("실제 학습·진단 문항 화면에 반말과 격식체가 남지 않�
 test("원본 학습·진단 데이터 자체도 투린이 해요체로 저장돼 있다", () => {
   const allExplanations = [
     ...questions.map((question) => ({ id: question.id, explanation: question.explanation })),
-    ...diagnosticQuestions.map((question) => ({ id: `DIAG_${question.diagnostic_quiz_id}`, explanation: question.explanation })),
+    ...diagnosticQuestions
+      .filter((question) => typeof question.explanation === "string")
+      .map((question) => ({ id: `DIAG_${question.diagnostic_quiz_id}`, explanation: question.explanation })),
   ];
   for (const question of allExplanations) {
     assert.equal(friendlyizeExplanation(question.explanation), question.explanation, `${question.id}: 원본 해설 말투`);

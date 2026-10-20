@@ -13,7 +13,7 @@ npm test               # node --test tests/*.test.mjs (TS 는 --experimental-str
 npm run lint
 ```
 
-- `public/data/quizData_720_FINAL.json` · `diagnostic_quiz.json` 은 .gitignore — 데이터는 별도 전달.
+- 학습 문항은 `public/data/quizData_864_FINAL.json`, 진단 문항은 `public/data/diagnostic_quiz_level_style_24.json`을 사용합니다.
 - `.env*` 는 절대 커밋·읽기 금지 (`.env.example` 만).
 - `tests/profile-avatar.test.mjs` 가 `react`/`typescript` 모듈 미설치 환경에서 실패하는 것은 환경 문제이지 코드 문제가 아닙니다.
 

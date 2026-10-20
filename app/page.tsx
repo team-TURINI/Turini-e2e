@@ -25,7 +25,7 @@ import {
 } from "./avatar-items";
 import { loadCustomizationCache, saveCustomizationCache } from "./avatar-storage";
 import { advanceStreak, normalizeStreak } from "./streak";
-import { financeLevelForRawScore } from "./diagnosis-utils";
+import { financeLevelForRawScore, tendencyForProfileScore } from "./diagnosis-utils";
 import {
   categoryDifficultyForLesson,
   categoryLessonPool,
@@ -63,6 +63,7 @@ type View = "home" | "learn" | "category" | "difficulty" | "portfolio" | "assets
 const VIEW_KEYS = ["home", "learn", "category", "difficulty", "portfolio", "assets", "profile"] as const;
 type Difficulty = "초급" | "중급" | "고급";
 type QuizMode = "daily" | "lesson" | "category" | "diagnosis";
+const DIAGNOSTIC_QUESTION_COUNT = 24;
 
 type QuizQuestion = {
   id: string;
@@ -85,6 +86,8 @@ type QuizQuestion = {
   verification_status?: string;
   isProfile?: boolean;
   choiceScores?: number[];
+  allowMultiple?: boolean;
+  scoreAggregation?: "selected" | "max";
   reviewKind?: "scheduled" | "retry";
 };
 
@@ -106,13 +109,20 @@ type DiagnosticQuestionRow = {
   choice_2: string | null;
   choice_3: string | null;
   choice_4: string | null;
+  choice_5: string | null;
+  choice_6: string | null;
   answer: number | null;
   point: number | null;
   style_score_1: number | null;
   style_score_2: number | null;
   style_score_3: number | null;
+  style_score_4: number | null;
+  style_score_5: number | null;
+  style_score_6: number | null;
   weakness_tag: string | null;
-  explanation: string;
+  explanation: string | null;
+  allow_multiple: boolean;
+  score_aggregation: "selected" | "max" | null;
 };
 
 type Progress = {
@@ -279,8 +289,10 @@ function buildDiagnosticQuestions(rows: DiagnosticQuestionRow[], learningQuestio
   return [...rows]
     .sort((a, b) => a.question_no - b.question_no)
     .map<QuizQuestion>((row) => {
-      const choices = [row.choice_1, row.choice_2, row.choice_3, row.choice_4].filter((choice): choice is string => Boolean(choice));
+      const choices = [row.choice_1, row.choice_2, row.choice_3, row.choice_4, row.choice_5, row.choice_6]
+        .filter((choice): choice is string => Boolean(choice));
       const isProfile = row.diagnostic_type === "STYLE";
+      const choiceScores = [row.style_score_1, row.style_score_2, row.style_score_3, row.style_score_4, row.style_score_5, row.style_score_6];
       const learningSource = learningQuestions.find((item) => item.diagnostic_item === row.diagnostic_quiz_id && item.type === "4지선다");
       const profileSource = PROFILE_QUESTIONS.find((item) => item.id === `PROFILE_${row.diagnostic_quiz_id}`);
       const source = learningSource || profileSource;
@@ -291,18 +303,20 @@ function buildDiagnosticQuestions(rows: DiagnosticQuestionRow[], learningQuestio
         difficulty: row.difficulty || "초급",
         diagnostic_item: isProfile ? null : row.diagnostic_quiz_id,
         diagnostic_linked: !isProfile,
-        type: isProfile ? "성향 진단" : row.question_type === "OX" ? "OX" : "4지선다",
+        type: isProfile ? "성향 진단" : row.question_type === "OX" ? "OX" : `${choices.length}지선다`,
         question: row.question_text,
         choices,
         answer: row.answer ? choices[row.answer - 1] || "" : "",
-        explanation: row.explanation,
+        explanation: row.explanation || "정답이 없는 성향 문항이에요.",
         weakness_tag: row.weakness_tag || "",
         parent_tag: learningSource?.parent_tag || row.weakness_tag || undefined,
         source_name: source?.source_name || "OECD 금융이해력 조사 기반",
         source_url: source?.source_url || "https://www.oecd.org/financial/education/",
         verification_status: "verified",
         isProfile,
-        choiceScores: isProfile ? [row.style_score_1 || 1, row.style_score_2 || 2, row.style_score_3 || 3] : undefined,
+        choiceScores: isProfile ? choiceScores.slice(0, choices.length).map((score) => score ?? 0) : undefined,
+        allowMultiple: isProfile && row.allow_multiple,
+        scoreAggregation: isProfile ? row.score_aggregation || "selected" : undefined,
       };
     });
 }
@@ -343,6 +357,7 @@ export default function Home() {
   const [progress, setProgress] = useState<Progress>(DEFAULT_PROGRESS);
   const [session, setSession] = useState<QuizSession | null>(null);
   const [selected, setSelected] = useState("");
+  const [selectedChoices, setSelectedChoices] = useState<string[]>([]);
   const [typed, setTyped] = useState("");
   const [answered, setAnswered] = useState(false);
   const [answerCorrect, setAnswerCorrect] = useState(false);
@@ -442,9 +457,12 @@ export default function Home() {
         const [quizResponse, overrideResponse, diagnosisResponse, accountResponse] = await Promise.all([
           fetch("/data/quizData_864_FINAL.json"),
           fetch("/data/quizData_overrides.json"),
-          fetch("/data/diagnostic_quiz.json"),
+          fetch("/data/diagnostic_quiz_level_style_24.json"),
           fetch("/api/account", { cache: "no-store" }),
         ]);
+        if (!quizResponse.ok || !diagnosisResponse.ok) {
+          throw new Error("진단 또는 학습 문항 파일을 불러오지 못했어요.");
+        }
         const baseQuizItems = await quizResponse.json() as QuizQuestion[];
         const quizOverrides = overrideResponse.ok
           ? await overrideResponse.json() as Record<string, QuizOverride>
@@ -456,7 +474,11 @@ export default function Home() {
           setDataError("문제 데이터를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.");
         }
         setQuestions(Array.isArray(quizItems) ? quizItems : []);
-        setDiagnosticQuestions(buildDiagnosticQuestions(diagnosticItems, quizItems));
+        const builtDiagnosticQuestions = buildDiagnosticQuestions(diagnosticItems, quizItems);
+        setDiagnosticQuestions(builtDiagnosticQuestions);
+        if (builtDiagnosticQuestions.length !== DIAGNOSTIC_QUESTION_COUNT) {
+          setDataError(`진단 문항을 ${DIAGNOSTIC_QUESTION_COUNT}개 불러오지 못했어요. 잠시 후 다시 시도해 주세요.`);
+        }
         localStorage.removeItem("turini-public-progress-v1");
         localStorage.removeItem("turini-public-portfolio-v1");
         if (accountResponse.ok) {
@@ -689,6 +711,7 @@ export default function Home() {
     });
     setResult(null);
     setSelected("");
+    setSelectedChoices([]);
     setTyped("");
     setAnswered(false);
     setShowRetryIntro(false);
@@ -710,7 +733,7 @@ export default function Home() {
   };
 
   const startDiagnosis = () => {
-    if (diagnosticQuestions.length !== 21) return;
+    if (diagnosticQuestions.length !== DIAGNOSTIC_QUESTION_COUNT) return;
     setSession({
       mode: "diagnosis",
       title: "금융 수준·성향 진단",
@@ -727,6 +750,7 @@ export default function Home() {
     });
     setResult(null);
     setSelected("");
+    setSelectedChoices([]);
     setTyped("");
     setAnswered(false);
     setShowRetryIntro(false);
@@ -737,15 +761,22 @@ export default function Home() {
     if (!session || answered) return;
     const question = session.questions[session.index];
     const value = question.type.includes("직접입력") ? typed : selected;
-    if (!value) return;
-    const profileChoice = question.isProfile ? question.choices.indexOf(value) : -1;
+    const selectedProfileChoices = question.allowMultiple ? selectedChoices : value ? [value] : [];
+    if (question.allowMultiple ? selectedProfileChoices.length === 0 : !value) return;
     const correct = question.isProfile
       ? true
       : question.type.includes("직접입력")
         ? isAnswerCorrect(value, question.answer, question.accepted_answers)
         : isChoiceCorrect(value, question.answer);
     const point = correct && question.diagnostic_item ? DIAG_POINTS[question.diagnostic_item] || 0 : 0;
-    const profilePoint = question.isProfile ? question.choiceScores?.[profileChoice] || 0 : 0;
+    const profilePoints = question.isProfile
+      ? selectedProfileChoices
+        .map((choice) => question.choiceScores?.[question.choices.indexOf(choice)])
+        .filter((point): point is number => typeof point === "number")
+      : [];
+    const profilePoint = question.scoreAggregation === "max"
+      ? Math.max(0, ...profilePoints)
+      : profilePoints.reduce((total, point) => total + point, 0);
     const isRetry = question.reviewKind === "retry";
     const retryQuestion = !correct && !isRetry && session.mode !== "diagnosis"
       ? createRetryQuestion(question, questions, session.index + progress.studySessions * 31)
@@ -789,7 +820,12 @@ export default function Home() {
     let tendency = progress.tendency;
     if (finished.mode === "diagnosis") {
       financeLevel = financeLevelForRawScore(finished.rawScore);
-      tendency = finished.profileScore <= 4 ? "안정형" : finished.profileScore <= 7 ? "중립형" : "공격형";
+      const profileQuestions = mainQuestions.filter((question) => question.isProfile);
+      const minimumProfileScore = profileQuestions.reduce((total, question) =>
+        total + Math.min(...(question.choiceScores || [0])), 0);
+      const maximumProfileScore = profileQuestions.reduce((total, question) =>
+        total + Math.max(...(question.choiceScores || [0])), 0);
+      tendency = tendencyForProfileScore(finished.profileScore, minimumProfileScore, maximumProfileScore);
     }
     setProgress((current) => ({
       ...current,
@@ -829,6 +865,7 @@ export default function Home() {
     });
     setShowRetryIntro(false);
     setSelected("");
+    setSelectedChoices([]);
     setTyped("");
     setAnswered(false);
     setAnswerCorrect(false);
@@ -849,6 +886,7 @@ export default function Home() {
     }
     setSession({ ...session, index: session.index + 1 });
     setSelected("");
+    setSelectedChoices([]);
     setTyped("");
     setAnswered(false);
     setAnswerCorrect(false);
@@ -1006,13 +1044,14 @@ export default function Home() {
           <TuriniAvatar motion="greet" className="turini-onboarding" />
           <p className="eyebrow">WELCOME TO TURINI</p>
           <h1>나에게 맞는 금융 학습을<br />진단부터 시작해요</h1>
-          <p className="onboarding-copy">금융 수준 18문항과 투자 성향 3문항을 풀면<br />맞춤 학습 경로와 포트폴리오 기준을 알려드려요.</p>
+          <p className="onboarding-copy">금융 수준 18문항과 투자 성향 6문항을 풀면<br />맞춤 학습 경로와 포트폴리오 기준을 알려드려요.</p>
           <div className="onboarding-info">
-            <span><b>21</b><small>전체 문항</small></span>
+            <span><b>{DIAGNOSTIC_QUESTION_COUNT}</b><small>전체 문항</small></span>
             <span><b>약 5분</b><small>예상 시간</small></span>
             <span><b>무료</b><small>바로 시작</small></span>
           </div>
-          <button className="primary-button" onClick={startDiagnosis} disabled={diagnosticQuestions.length !== 21}>진단 테스트 시작하기 <span>→</span></button>
+          {dataError ? <p className="form-error" role="alert">{dataError}</p> : null}
+          <button className="primary-button" onClick={startDiagnosis} disabled={diagnosticQuestions.length !== DIAGNOSTIC_QUESTION_COUNT}>진단 테스트 시작하기 <span>→</span></button>
           <small className="onboarding-note">진단은 처음 한 번만 진행하며 결과와 학습 기록은 계정에 안전하게 저장돼요.</small>
         </section>
       </main>
@@ -1041,16 +1080,16 @@ export default function Home() {
     const isText = question.type.includes("직접입력");
     const inputGuide = directInputGuide(question.answer);
     const questionGuide = question.isProfile
-      ? { label: "성향 진단", copy: "나와 가장 가까운 답을 고르세요" }
+      ? { label: "성향 진단", copy: question.allowMultiple ? "해당하는 항목을 모두 골라주세요" : "나와 가장 가까운 답을 고르세요" }
       : question.type === "OX"
         ? { label: "O/X", copy: "맞으면 O · 틀리면 X" }
-        : question.type === "4지선다"
-          ? { label: "4지선다", copy: "문제에 맞는 답을 고르세요" }
+        : question.type.endsWith("지선다")
+          ? { label: question.type, copy: "문제에 맞는 답을 고르세요" }
           : question.type === "빈칸선택"
             ? { label: "빈칸 선택", copy: "빈칸에 들어갈 답을 고르세요" }
             : { label: "직접 입력", copy: inputGuide.copy };
     const displayQuestion = formatQuestionPrompt(question.type, question.question);
-    const chosen = isText ? typed : selected;
+    const chosen = isText ? typed : question.allowMultiple ? selectedChoices.length > 0 : selected;
     const isRetryPhase = session.phase === "retry";
     const visibleIndex = isRetryPhase ? session.index - session.baseQuestionCount + 1 : session.index + 1;
     const visibleTotal = isRetryPhase ? session.retryQuestions.length : session.baseQuestionCount;
@@ -1076,11 +1115,19 @@ export default function Home() {
           ) : (
             <div className={`answer-grid ${question.choices.length === 2 ? "ox-grid" : ""}`}>
               {question.choices.map((choice, index) => {
-                const selectedChoice = selected === choice;
+                const selectedChoice = question.allowMultiple ? selectedChoices.includes(choice) : selected === choice;
                 const correctChoice = answered && isChoiceCorrect(choice, question.answer);
                 const wrongChoice = answered && selectedChoice && !correctChoice && !question.isProfile;
                 return (
-                  <button key={`${choice}-${index}`} className={`answer-choice ${selectedChoice ? "selected" : ""} ${correctChoice && !question.isProfile ? "correct" : ""} ${wrongChoice ? "wrong" : ""}`} onClick={() => !answered && setSelected(choice)} disabled={answered}>
+                  <button key={`${choice}-${index}`} className={`answer-choice ${selectedChoice ? "selected" : ""} ${correctChoice && !question.isProfile ? "correct" : ""} ${wrongChoice ? "wrong" : ""}`} aria-pressed={selectedChoice} onClick={() => {
+                    if (question.allowMultiple) {
+                      setSelectedChoices((current) => current.includes(choice)
+                        ? current.filter((selectedChoiceValue) => selectedChoiceValue !== choice)
+                        : [...current, choice]);
+                    } else {
+                      setSelected(choice);
+                    }
+                  }} disabled={answered}>
                     <span>{index + 1}</span><strong>{choice}</strong>{correctChoice && !question.isProfile ? <b>✓</b> : null}
                   </button>
                 );
@@ -1119,6 +1166,10 @@ export default function Home() {
     const total = result.questions
       .slice(0, result.baseQuestionCount)
       .filter((question) => !question.isProfile).length;
+    const profileScoreMaximum = result.questions
+      .slice(0, result.baseQuestionCount)
+      .filter((question) => question.isProfile)
+      .reduce((sum, question) => sum + Math.max(...(question.choiceScores || [0])), 0);
     const percent = Math.round((result.correct / Math.max(1, total)) * 100);
     const resultCategory = result.category;
     const nextLesson = result.mode === "lesson" && result.lesson && result.lesson < MAX_CATEGORY_LEVEL
@@ -1147,7 +1198,7 @@ export default function Home() {
           <TuriniAvatar motion="celebrate" className="turini-lesson-result" replayKey={result.correct} />
           <p className="eyebrow">{result.mode === "diagnosis" ? "진단 완료" : "레슨 완료"}</p>
           <h1>{result.mode === "diagnosis" ? `${progress.financeLevel} · ${progress.tendency}` : percent >= 80 ? "완벽해요, 레벨 업!" : "오늘도 한 걸음 성장!"}</h1>
-          <p>{result.mode === "diagnosis" ? `수준 점수 ${result.rawScore}/54점 · 성향 점수 ${result.profileScore}/9점` : `${total}문제 중 ${result.correct}문제를 맞혔어요.`}</p>
+          <p>{result.mode === "diagnosis" ? `수준 점수 ${result.rawScore}/54점 · 성향 점수 ${result.profileScore}/${profileScoreMaximum}점` : `${total}문제 중 ${result.correct}문제를 맞혔어요.`}</p>
           <div className="result-stats"><div><span>정답률</span><strong>{percent}%</strong></div><div><span>획득 XP</span><strong>+{result.mode === "diagnosis" ? result.correct * 5 : result.correct * 10}</strong></div><div><span>연속 학습</span><strong>{progress.streak}일</strong></div></div>
           {result.weakTags.length ? <div className="weak-box"><span>취약 상위 태그 · 눌러서 맞춤 학습</span><div>{result.weakTags.slice(0, 3).map((tag) => <button key={tag} onClick={() => startWeakTag(tag)}>{tag}</button>)}</div></div> : null}
           <button className="primary-button" onClick={() => { setResult(null); navigate("home"); }}>홈으로</button>
