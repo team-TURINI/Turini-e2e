@@ -64,8 +64,8 @@ test("profile centers are the target-table sigma and boundaries are midpoints", 
 
 test("grade uses the current Korean fund risk-grade VaR bands 1/10/20/30/50", () => {
   assert.deepEqual(GRADE_BANDS, { 6: 1, 5: 10, 4: 20, 3: 30, 2: 50 });
-  assert.deepEqual(riskGradeFor(1), { grade: 6, name: "매우 낮음" });
-  assert.deepEqual(riskGradeFor(1.01), { grade: 5, name: "낮음" });
+  assert.deepEqual(riskGradeFor(1), { grade: 6, name: "매우낮은위험" });
+  assert.deepEqual(riskGradeFor(1.01), { grade: 5, name: "낮은위험" });
   assert.equal(riskGradeFor(10).grade, 5);
   assert.equal(riskGradeFor(20).grade, 4);
   assert.equal(riskGradeFor(30).grade, 3);
@@ -175,5 +175,38 @@ test("legacy fund allocation migrates and the new rule version invalidates old r
   const migrated = normalizeAllocation({ domestic: 10, overseas: 20, bond: 30, fund: 20, cash: 10, gold: 10 });
   assert.equal(migrated.equityFund, 0.2);
   assert.equal(allocationTotal(migrated), 1);
-  assert.match(PORTFOLIO_RULE_VERSION, /^5\.0\.0-portfolio-v12/);
+  assert.match(PORTFOLIO_RULE_VERSION, /^5\.1\.0-portfolio-v12/);
+});
+
+test("rebalancing actions are sorted by |delta| desc, then asset σ desc", () => {
+  const capped = analyzeAllocation(targetFor("공격형"), "공격형", "1~3년");
+  const sizes = capped.rebalancingActions.map((item) => Math.abs(item.delta));
+  assert.deepEqual(sizes, [...sizes].sort((a, b) => b - a));
+  // 금 100% → 금 10 / 현금 90: 크기가 같으면 σ 가 큰 금이 먼저
+  const gold = analyzeAllocation(single("gold"), "중립형", "1년 미만");
+  assert.deepEqual(gold.rebalancingActions.map((item) => item.asset), ["gold", "cash"]);
+});
+
+test("distance to range, grade sentence and fixed strength sentences follow the spec", () => {
+  const p01 = analyzeAllocation({ ...single("domestic"), domestic: 0.55, equityFund: 0.15, cash: 0.3 }, "안정형", "3~10년");
+  assert.ok(Math.abs(p01.distanceToRange - (p01.riskScore - TYPE_RANGES.안정형[1])) < 0.01);
+  const matched = analyzeAllocation(targetFor("중립형"), "중립형", "3~10년");
+  assert.equal(matched.distanceToRange, 0);
+  assert.equal(matched.riskGradeSentence, `연간 손실 위험(VaR) ${GRADE_BANDS[matched.riskGrade]}% 이하 구간이에요`);
+  assert.equal(analyzeAllocation(single("domestic"), "공격형", "10년 이상").riskGradeSentence, "연간 손실 위험(VaR) 50% 초과 구간이에요");
+  assert.equal(matched.strengths[0], "현재 배분의 위험 수준이 진단된 성향에 대해 설정한 기준 범위에 들어와 있어요.");
+  assert.equal(matched.strengths[2], "현재 배분의 위험 수준이 입력한 투자기간이 허용하는 범위 안에 있어요.");
+  assert.ok(matched.strengths[1].startsWith(`자산을 섞은 효과로 위험이 ${matched.diversificationBaseGrade}등급`));
+  assert.equal(matched.baseTarget.horizonFitLabel, OK_HORIZON_LABEL);
+});
+
+test("unlock tags include assets new in the near target or the base target", () => {
+  // 현금 100% 공격형 → 가까운 목표에 ETF, 기준 목표에 주식·채권·금이 새로 등장
+  const cash = analyzeAllocation(single("cash"), "공격형", "10년 이상");
+  assert.deepEqual(cash.unlockTags.slice(0, 2), ["ETF의 개념", "인덱스 ETF 분산효과"]);
+  assert.ok(cash.unlockTags.includes("채권의 개념"));
+  // hold 여도 기준 목표에 새로 등장하는 자산군의 태그는 붙는다
+  const etf = analyzeAllocation(single("equityFund"), "공격형", "10년 이상");
+  assert.equal(etf.recommendationStatus, "hold");
+  assert.ok(etf.unlockTags.includes("채권의 개념"));
 });

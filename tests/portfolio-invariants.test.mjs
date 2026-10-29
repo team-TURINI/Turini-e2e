@@ -81,6 +81,10 @@ test("1,500 randomized portfolios preserve v12 calculation invariants", () => {
       assert.ok(result.nearTarget.riskScore >= lo - 0.01 && result.nearTarget.riskScore <= hi + 0.01);
     }
     for (const item of result.rebalancingActions) assert.ok(Math.abs(item.delta) >= 5);
+    const sizes = result.rebalancingActions.map((item) => Math.abs(item.delta));
+    assert.deepEqual(sizes, [...sizes].sort((a, b) => b - a), "액션은 |delta| 내림차순");
+    if (inType) assert.equal(result.distanceToRange, 0);
+    else assert.ok(result.distanceToRange > 0);
     for (const item of result.residualItems) assert.ok(Math.abs(item.delta) > 0 && Math.abs(item.delta) < 5);
     for (const signal of result.signals) assert.ok(["structural", "caution"].includes(signal.kind) && signal.id >= 1 && signal.id <= 6);
   }
