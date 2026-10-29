@@ -1,7 +1,7 @@
 "use client";
 
 import { CSSProperties, ChangeEvent, Dispatch, FormEvent, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ChatPanel from "./chat/chat-panel";
+import ChatPanel, { ChatLauncher } from "./chat/chat-panel";
 import "./chat/chat.css";
 import {
   conceptKey,
@@ -355,6 +355,7 @@ function normalizeParentTags(tags: unknown, learningQuestions: QuizQuestion[]) {
 
 export default function Home() {
   const [view, setView] = useState<View>("home");
+  const [chatOpen, setChatOpen] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [diagnosticQuestions, setDiagnosticQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1346,7 +1347,6 @@ export default function Home() {
                 <button className="primary-button" disabled={!allocationReady} onClick={runPortfolioAnalysis}>{allocationReady ? "포트폴리오 분석하기" : `합계를 100%로 맞춰주세요 (${allocationTotal}%)`}</button>
               </div>
               {portfolioResult && <PortfolioResults result={portfolioResult} allocation={allocation} tab={portfolioTab} setTab={setPortfolioTab} aiFeedback={aiFeedback} aiFeedbackLoading={aiFeedbackLoading} aiFeedbackError={aiFeedbackError} retryAiFeedback={() => void requestAiFeedback(portfolioResult)} />}
-              <ChatPanel key={account.username} />
             </div>
           )}
 
@@ -1379,7 +1379,11 @@ export default function Home() {
           )}
         </section>
 
-        <nav className="mobile-nav" aria-label="주요 메뉴">{(["home", "category", "portfolio", "assets", "profile"] as View[]).map((item) => <NavButton key={item} item={item} active={view === item || (item === "category" && (view === "learn" || view === "difficulty"))} onClick={() => navigate(item)} />)}</nav>
+        {/* 금융 개념 채팅은 모든 탭 오른쪽 아래 버튼으로 열어요. 닫아도 대화가 남도록 패널은 계속 마운트해 둬요. */}
+        {!chatOpen && <ChatLauncher onOpen={() => setChatOpen(true)} />}
+        <ChatPanel key={account.username} open={chatOpen} onClose={() => setChatOpen(false)} onOpenPortfolio={() => { setChatOpen(false); navigate("portfolio"); }} />
+
+        <nav className="mobile-nav" aria-label="주요 메뉴">{(["home", "category", "portfolio", "assets", "profile"] as View[]).map((item) => <NavButton key={item} item={item} active={view === item || (item === "category" && (view === "learn" || view === "difficulty"))} onClick={() => { setChatOpen(false); navigate(item); }} />)}</nav>
       </div>
     </main>
     </TuriniAvatarProvider>
