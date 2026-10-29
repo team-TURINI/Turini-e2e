@@ -45,3 +45,14 @@ test("the trailing disclaimer of a RAG answer is split off for the card footer",
   assert.deepEqual(splitDisclaimer("ETF는 거래소에 상장돼요."), { body: "ETF는 거래소에 상장돼요.", note: "" });
   assert.deepEqual(splitDisclaimer("원금 손실 가능성이 있는 상품이에요."), { body: "원금 손실 가능성이 있는 상품이에요.", note: "" });
 });
+
+test("disclaimer split also catches differently worded trailing notices", () => {
+  const answer = "“계란을 한 바구니에 담지 말라”는 말은 여러 자산에 나눠 투자하라는 뜻입니다. 경제 상황이 불확실할 때 특히 중요합니다. 원금 손실이 발생할 수 있으므로 유의하시기 바라며, 본 안내는 투자 권유가 아닌 정보 제공입니다.";
+  assert.deepEqual(splitDisclaimer(answer), {
+    body: "“계란을 한 바구니에 담지 말라”는 말은 여러 자산에 나눠 투자하라는 뜻입니다. 경제 상황이 불확실할 때 특히 중요합니다.",
+    note: "원금 손실이 발생할 수 있으므로 유의하시기 바라며, 본 안내는 투자 권유가 아닌 정보 제공입니다.",
+  });
+  // 고지가 두 문장으로 나뉘어 있어도 함께 모은다
+  assert.equal(splitDisclaimer("ETF는 상장돼요. 원금 손실이 생길 수 있어요. 본 안내는 투자 권유가 아니에요.").note,
+    "원금 손실이 생길 수 있어요. 본 안내는 투자 권유가 아니에요.");
+});

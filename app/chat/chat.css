@@ -77,8 +77,11 @@
 .rag-chat-icon-button:hover { background: #f1f6f0; }
 .rag-chat-icon-button svg, .rag-chat-send svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
+/* 줄마다 높이를 고정하고 목록 칸만 스크롤한다 (칸이 줄어도 줄끼리 겹치지 않게) */
 .rag-chat-history {
-  display: grid;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   max-height: 40%;
   overflow-y: auto;
@@ -86,7 +89,7 @@
   border-bottom: 1px solid #e6ece5;
   background: #fff;
 }
-.rag-chat-history button { padding: 11px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--rag-ink); text-align: left; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rag-chat-history button { flex: 0 0 auto; min-height: 44px; padding: 11px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--rag-ink); text-align: left; font-size: 14px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rag-chat-history button:hover, .rag-chat-history button[aria-current="true"] { background: var(--rag-green-soft); }
 .rag-chat-history .rag-chat-new { color: #2f8a45; font-weight: 800; }
 .rag-chat-history p { margin: 6px 12px; color: var(--rag-muted); font-size: 13px; }
