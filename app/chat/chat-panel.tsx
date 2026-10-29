@@ -6,7 +6,7 @@ import { splitDisclaimer, type ChatMessage } from "../rag-contract";
 type Conversation = { id: string; title: string };
 /** 화면에서만 쓰는 보낸 시각. 서버에 저장된 지난 대화에는 시각이 없어요. */
 type UiMessage = ChatMessage & { at?: number };
-type ChatPanelProps = { open: boolean; onClose: () => void; onOpenPortfolio?: () => void };
+type ChatPanelProps = { open: boolean; onClose: () => void };
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" });
 
@@ -18,7 +18,7 @@ export function ChatLauncher({ onOpen }: { onOpen: () => void }) {
   </button>;
 }
 
-export default function ChatPanel({ open, onClose, onOpenPortfolio }: ChatPanelProps) {
+export default function ChatPanel({ open, onClose }: ChatPanelProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [listLoaded, setListLoaded] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -141,8 +141,6 @@ export default function ChatPanel({ open, onClose, onOpenPortfolio }: ChatPanelP
         <span className="rag-chat-avatar rag-chat-avatar--large" aria-hidden="true" />
         <h3>궁금한 금융 개념을 물어보세요</h3>
         <p>“주식과 채권은 뭐가 달라?”처럼 한 가지씩 물어보면 더 정확하게 설명해 드려요.</p>
-        <p className="rag-chat-footnote">금융 개념 학습용 채팅이에요. 내 비중과 조정 질문은 포트폴리오 AI 코치를 이용해 주세요.
-          {onOpenPortfolio && <button type="button" className="rag-chat-portfolio-link" onClick={onOpenPortfolio}>포트폴리오로 이동 →</button>}</p>
       </div>}
       {messages.map((m, i) => {
         const time = m.at ? <time className="rag-chat-time" dateTime={new Date(m.at).toISOString()}>{TIME_FORMAT.format(m.at)}</time> : null;

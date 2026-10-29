@@ -1381,7 +1381,7 @@ export default function Home() {
 
         {/* 금융 개념 채팅은 모든 탭 오른쪽 아래 버튼으로 열어요. 닫아도 대화가 남도록 패널은 계속 마운트해 둬요. */}
         {!chatOpen && <ChatLauncher onOpen={() => setChatOpen(true)} />}
-        <ChatPanel key={account.username} open={chatOpen} onClose={() => setChatOpen(false)} onOpenPortfolio={() => { setChatOpen(false); navigate("portfolio"); }} />
+        <ChatPanel key={account.username} open={chatOpen} onClose={() => setChatOpen(false)} />
 
         <nav className="mobile-nav" aria-label="주요 메뉴">{(["home", "category", "portfolio", "assets", "profile"] as View[]).map((item) => <NavButton key={item} item={item} active={view === item || (item === "category" && (view === "learn" || view === "difficulty"))} onClick={() => { setChatOpen(false); navigate(item); }} />)}</nav>
       </div>

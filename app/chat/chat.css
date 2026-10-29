@@ -116,8 +116,6 @@
 .rag-chat-empty { margin: auto 0; display: grid; justify-items: center; gap: 4px; padding: 24px 10px; text-align: center; color: #405440; }
 .rag-chat-empty h3 { margin: 12px 0 2px; font-size: 19px; color: #1f4d2b; }
 .rag-chat-empty p { margin: 0; font-size: 14px; line-height: 1.6; }
-.rag-chat-footnote { margin-top: 14px !important; display: grid; justify-items: center; gap: 8px; color: var(--rag-muted); font-size: 12.5px !important; }
-.rag-chat .rag-chat-portfolio-link { padding: 8px 12px; border: 1px solid #b9cbb7; border-radius: 12px; background: #f6faf4; color: #1f5e2a; font-size: 12px; font-weight: 800; }
 
 .rag-chat-typing { min-width: 86px; }
 .rag-chat-typing-dots { display: flex; align-items: center; gap: 5px; height: 18px; }
