@@ -167,15 +167,8 @@ type QuizSession = {
   lesson?: number;
 };
 
-type AIFeedback = {
-  summary_ko: string;
-  strengths: string[];
-  cautions: string[];
-  improvements: string[];
-  concept_refs: string[];
-};
-
 type Account = { username: string };
+type PortfolioTab = "summary" | "rebalance" | "detail";
 type PortfolioInputMode = "actual" | "practice";
 type AccountPayload = {
   account: Account;
@@ -374,10 +367,7 @@ export default function Home() {
   const [horizon, setHorizon] = useState(DEFAULT_PORTFOLIO_HORIZON);
   const [portfolioInputMode, setPortfolioInputMode] = useState<PortfolioInputMode>("actual");
   const [portfolioResult, setPortfolioResult] = useState<PortfolioResult | null>(null);
-  const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
-  const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
-  const [aiFeedbackError, setAiFeedbackError] = useState("");
-  const [portfolioTab, setPortfolioTab] = useState<"summary" | "rebalance" | "detail" | "coach">("summary");
+  const [portfolioTab, setPortfolioTab] = useState<PortfolioTab>("summary");
   const [activeAssetHelp, setActiveAssetHelp] = useState<AssetKey | null>(null);
   const [activeCategoryName, setActiveCategoryName] = useState("");
   const [account, setAccount] = useState<Account | null>(null);
@@ -431,8 +421,6 @@ export default function Home() {
     setPortfolioInputMode(savedPortfolio.inputMode === "practice" ? "practice" : "actual");
     setPlanner(normalizeWealthPlanner(savedPortfolio.planner));
     setPortfolioResult(savedPortfolio.ruleVersion === PORTFOLIO_RULE_VERSION ? savedPortfolio.result || null : null);
-    setAiFeedback(null);
-    setAiFeedbackError("");
     setAccountStateReady(true);
     setSaveState("idle");
   }, []);
@@ -446,8 +434,6 @@ export default function Home() {
     setPortfolioInputMode("actual");
     setPlanner({ ...DEFAULT_WEALTH_PLANNER });
     setPortfolioResult(null);
-    setAiFeedback(null);
-    setAiFeedbackError("");
     setResult(null);
     setSession(null);
     setView("home");
@@ -926,47 +912,12 @@ export default function Home() {
     const target = targetFor(type);
     setAllocation(target);
     setPortfolioResult(null);
-    setAiFeedback(null);
-    setAiFeedbackError("");
-  };
-
-  const requestAiFeedback = async (analysis: PortfolioResult) => {
-    setAiFeedbackLoading(true);
-    setAiFeedbackError("");
-    try {
-      const response = await fetch("/api/portfolio-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          computed: analysis,
-          context: {
-            allocation,
-            assetLabels: Object.fromEntries(ASSETS.map((asset) => [asset.key, asset.label])),
-            portfolioRuleVersion: PORTFOLIO_RULE_VERSION,
-            tendency: progress.tendency === "진단 전" ? "중립형" : progress.tendency,
-            horizon,
-            inputMode: portfolioInputMode,
-            weakTags: progress.weakTags,
-          },
-        }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "GPT 코칭을 불러오지 못했어요.");
-      setAiFeedback(payload.feedback as AIFeedback);
-    } catch (error) {
-      setAiFeedback(null);
-      setAiFeedbackError(error instanceof Error ? error.message : "GPT 코칭을 불러오지 못했어요.");
-    } finally {
-      setAiFeedbackLoading(false);
-    }
   };
 
   const runPortfolioAnalysis = () => {
     if (!validateAllocation(allocation)) return;
     const analysis = analyzeAllocation(allocation, progress.tendency, horizon);
     setPortfolioResult(analysis);
-    setAiFeedback(null);
-    void requestAiFeedback(analysis);
     setPortfolioTab("summary");
     window.setTimeout(() => document.getElementById("portfolio-result")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
@@ -1346,7 +1297,7 @@ export default function Home() {
                 <div className="progress-track alloc-summary__bar"><span style={{ width: `${Math.min(100, allocationTotal)}%` }} /></div>
                 <button className="primary-button" disabled={!allocationReady} onClick={runPortfolioAnalysis}>{allocationReady ? "포트폴리오 분석하기" : `합계를 100%로 맞춰주세요 (${allocationTotal}%)`}</button>
               </div>
-              {portfolioResult && <PortfolioResults result={portfolioResult} allocation={allocation} tab={portfolioTab} setTab={setPortfolioTab} aiFeedback={aiFeedback} aiFeedbackLoading={aiFeedbackLoading} aiFeedbackError={aiFeedbackError} retryAiFeedback={() => void requestAiFeedback(portfolioResult)} />}
+              {portfolioResult && <PortfolioResults result={portfolioResult} allocation={allocation} tab={portfolioTab} setTab={setPortfolioTab} />}
             </div>
           )}
 
@@ -1683,7 +1634,7 @@ function NavButton({ item, active, onClick }: { item: View; active: boolean; onC
   return <button className={active ? "active" : ""} onClick={onClick} aria-current={active ? "page" : undefined}><span><NavIcon item={item} /></span><b>{meta[item].label}</b></button>;
 }
 
-function PortfolioResults({ result, allocation, tab, setTab, aiFeedback, aiFeedbackLoading, aiFeedbackError, retryAiFeedback }: { result: PortfolioResult; allocation: Allocation; tab: "summary" | "rebalance" | "detail" | "coach"; setTab: (tab: "summary" | "rebalance" | "detail" | "coach") => void; aiFeedback: AIFeedback | null; aiFeedbackLoading: boolean; aiFeedbackError: string; retryAiFeedback: () => void }) {
+function PortfolioResults({ result, allocation, tab, setTab }: { result: PortfolioResult; allocation: Allocation; tab: PortfolioTab; setTab: (tab: PortfolioTab) => void }) {
   const shownTarget = result.nearTarget?.allocation ?? result.baseTarget.allocation;
   const targetChart = ASSETS.reduce<{ cursor: number; stops: string[] }>((state, asset) => {
     const end = state.cursor + toPercent(shownTarget[asset.key]);
@@ -1697,11 +1648,10 @@ function PortfolioResults({ result, allocation, tab, setTab, aiFeedback, aiFeedb
   return <section id="portfolio-result" className="portfolio-result card-block">
     <div className="result-hero"><div><p>서비스 변동성 위험등급</p><strong>{result.riskGrade}<small>등급</small></strong><span>{result.riskGradeName} · {result.riskGradeSentence}</span></div><TuriniAvatar motion="gauge" className="turini-score" replayKey={result.riskGrade} level={(Number(result.riskGrade) - 1) / 5} /></div>
     <div className="score-cards verdict-cards"><article><span>연환산 변동성</span><strong>{result.riskScore}<small>%</small></strong><small>공분산으로 계산한 위험값이에요 · 공식 상품등급은 아니에요</small></article><article><span>성향 판정</span><strong className="verdict-text">{result.typeFitLabel}</strong><small>기준 범위 {result.profileRange[0].toFixed(2)}~{result.profileRange[1].toFixed(2)}%{result.distanceToRange > 0 ? ` · 성향 범위까지 ${result.distanceToRange.toFixed(1)}%p 남았어요` : ""}</small></article><article><span>기간 판정</span><strong className="verdict-text">{result.horizonFitLabel}</strong><small>허용 상한 {result.horizonCap.toFixed(2)}%</small></article></div>
-    <div className="portfolio-tabs"><button className={tab === "summary" ? "active" : ""} onClick={() => setTab("summary")}>요약</button><button className={tab === "rebalance" ? "active" : ""} onClick={() => setTab("rebalance")}>리밸런싱</button><button className={tab === "detail" ? "active" : ""} onClick={() => setTab("detail")}>상세 분석</button><button className={tab === "coach" ? "active" : ""} onClick={() => setTab("coach")}>AI 코치</button></div>
+    <div className="portfolio-tabs"><button className={tab === "summary" ? "active" : ""} onClick={() => setTab("summary")}>요약</button><button className={tab === "rebalance" ? "active" : ""} onClick={() => setTab("rebalance")}>리밸런싱</button><button className={tab === "detail" ? "active" : ""} onClick={() => setTab("detail")}>상세 분석</button></div>
     {tab === "summary" && <div className="tab-panel"><div className="coach-banner"><BasicReadingTurini className="turini-coach" decorative /><div><b>투리니 코치의 한마디</b><p>{result.coach}</p></div></div><div className="analysis-columns"><article className="good"><h3>강점 · {result.strengths.length}개</h3>{result.strengths.length ? <ul>{result.strengths.map((item) => <li key={item}>{item}</li>)}</ul> : <p>세 가지 검증 축에서 확정할 수 있는 강점이 아직 없어요.</p>}</article><article className="care"><h3>확인할 점</h3>{result.cautions.length ? <ul>{result.cautions.map((item) => <li key={item}>{item}</li>)}</ul> : <p>지금은 따로 확인할 점이 없어요.</p>}</article></div></div>}
     {tab === "rebalance" && <div className="tab-panel"><div className="target-chart"><div className="allocation-donut small" style={targetChartStyle}><span>{result.nearTarget ? "조정안" : "비교"}</span></div><div><h3>{statusTitle[result.recommendationStatus]}</h3><p>{result.coach}</p></div></div><div className="rebalance-table target-compare"><div className="table-head"><span>배분</span><span>변동성</span><span>등급</span><span>6개월 하방 참고치</span></div>{([["현재", { riskScore: result.riskScore, riskGrade: result.riskGrade, riskGradeName: result.riskGradeName, downside6m: result.downside6m }], ...(result.nearTarget && result.recommendationStatus !== "hold" ? [["가까운 목표", result.nearTarget]] : []), [`기준 목표 · ${result.baseTarget.horizonFitLabel}`, result.baseTarget]] as [string, Pick<PortfolioResult, "riskScore" | "riskGrade" | "riskGradeName" | "downside6m">][]).map(([label, row]) => <div key={label}><strong>{label}</strong><span>{row.riskScore.toFixed(2)}%</span><span>{row.riskGrade}등급</span><b>{row.downside6m}% · {row.riskGradeName}</b></div>)}</div>{["recommended", "horizon_capped"].includes(result.recommendationStatus) && result.nearTarget && result.rebalancingActions.length ? <div className="rebalance-table"><div className="table-head"><span>자산</span><span>현재</span><span>조정안</span><span>차이 · 방향</span></div>{result.rebalancingActions.map((item) => { const asset = ASSETS.find((candidate) => candidate.key === item.asset)!; return <div key={asset.key}><strong><i style={{ background: asset.color }} />{asset.label}</strong><span>{toPercent(allocation[asset.key])}%</span><span>{toPercent(result.nearTarget!.allocation[asset.key])}%</span><b className={item.delta > 0 ? "buy" : "sell"}>{item.delta > 0 ? "+" : ""}{item.delta}%p · {item.delta > 0 ? "늘리기" : "줄이기"}</b></div>; })}</div> : <p className="fine-print">이 상태에서는 실행 항목을 만들지 않아요.</p>}{result.residualItems.length ? <div className="residual-list"><b>5%p 미만 차이는 참고만 해요 · 실행 항목은 아니에요</b>{result.residualItems.map((item) => { const asset = ASSETS.find((candidate) => candidate.key === item.asset)!; return <span key={item.asset}>{asset.label} {item.delta > 0 ? "+" : ""}{item.delta}%p</span>; })}</div> : null}<p className="fine-print">성향별 기본 배분은 비교 기준일 뿐, 조정 목표로 그대로 쓰지 않아요. 비율 차이와 방향만 보여 주고 금액·상품은 제안하지 않아요.</p></div>}
     {tab === "detail" && <div className="tab-panel detail-grid"><article><span>연환산 변동성</span><strong>{result.riskScore}%</strong><p>공분산으로 계산했어요 · 기준일 {result.sigmaAsof}</p></article><article><span>연간 손실 위험(VaR)</span><strong>{result.riskVar}%</strong><p>{result.riskGradeSentence}. {VAR_HELP}</p></article><article><span>6개월 하방 참고치</span><strong>{result.downside6m}%</strong><p>모형상 6개월 후 하방 참고치는 {result.downside6m}%예요. {DOWNSIDE_HELP}</p></article><article><span>분산효과 감소율</span><strong>{result.diversificationReduction === null ? "계산할 수 없어요" : `${Math.round(result.diversificationReduction * 100)}%`}</strong><p>{DIVERSIFICATION_STATUS_TEXT[result.diversificationStatus]} · 자산이 하나뿐이면 강점으로 보지 않아요.</p></article><article><span>기준 범위</span><strong>{result.profileRange[0].toFixed(2)}~{result.profileRange[1].toFixed(2)}%</strong><p>투자기간이 허용하는 위험 상한은 {result.horizonCap.toFixed(2)}%예요.</p></article></div>}
-    {tab === "coach" && <div className="tab-panel ai-coach-panel"><TuriniAvatar customization={BASIC_DISPLAY_CUSTOMIZATION} motion={aiFeedbackLoading ? "thinking" : "reading"} className="turini-ai-coach" decorative /><div><p className="eyebrow">TURINI GPT COACH</p>{aiFeedbackLoading ? <><h3>GPT가 규칙 결과를 설명하고 있어요…</h3><p>잠시만 기다려 주세요.</p></> : aiFeedback ? <><h3>{aiFeedback.summary_ko}</h3>{aiFeedback.strengths.length > 0 && <section className="ai-feedback-section"><b>강점</b><ul>{aiFeedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section>}{aiFeedback.cautions.length > 0 && <section className="ai-feedback-section"><b>주의할 점</b><ul>{aiFeedback.cautions.map((item) => <li key={item}>{item}</li>)}</ul></section>}{aiFeedback.improvements.length > 0 && <section className="ai-feedback-section"><b>개선 방향</b><ul>{aiFeedback.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section>}{aiFeedback.concept_refs.length > 0 && <p className="ai-concepts">함께 공부할 개념 · {aiFeedback.concept_refs.join(" · ")}</p>}</> : <><h3>{result.coach}</h3><p>{aiFeedbackError || "규칙 분석 결과를 보여 주고 있어요."}</p>{aiFeedbackError && <button className="primary-button" onClick={retryAiFeedback}>GPT 코칭 다시 받기</button>}</>}<button className="primary-button" onClick={() => setTab("rebalance")}>조정 방향 보기</button></div></div>}
     <p className="result-disclaimer">{PORTFOLIO_DISCLAIMER} {MODEL_LIMITATION}</p>
   </section>;
 }

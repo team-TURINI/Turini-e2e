@@ -200,7 +200,7 @@ test("정답을 맞히면 다음 복습이 뒤로 밀린다", () => {
 
 test("화면 코드가 추천 기준을 실제로 넘겨 준다", () => {
   assert.match(pageSource, /const recommendation = \{/);
-  assert.match(pageSource, /weakTags: progress\.weakTags/);
+  assert.match(pageSource, /weakTags: focusTags\?\.length \? focusTags : progress\.weakTags/);
   assert.match(pageSource, /level: progress\.financeLevel === "진단 전" \? undefined : progress\.financeLevel/);
   assert.match(pageSource, /recentIds: progress\.completedIds\.slice\(-30\)/);
   assert.match(pageSource, /const uncompletedLessonPool = mode === "lesson"/);
