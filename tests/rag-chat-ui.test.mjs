@@ -32,8 +32,8 @@ test("the chat opens from a floating button on every tab, not inside a single sc
   assert.equal(pageSource.indexOf("<ChatPanel", chat + 1), -1);
   assert.match(pageSource, /\{!chatOpen && <ChatLauncher onOpen=\{\(\) => setChatOpen\(true\)\} \/>\}/);
   assert.match(pageSource, /onClick=\{\(\) => \{ setChatOpen\(false\); navigate\(item\); \}\}/);
-  assert.match(pageSource, />AI 코치<\/button>/);
   assert.match(chatCss, /\.rag-chat-launcher \{[^}]*position: fixed/);
+  assert.match(panelSource, /<b>투리니<\/b>/);
 });
 
 test("the chat screen keeps its title, badge, input and send button", () => {

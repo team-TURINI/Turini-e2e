@@ -12,9 +12,9 @@ const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: 
 
 /** 모든 화면 오른쪽 아래에 떠 있는 채팅 열기 버튼 */
 export function ChatLauncher({ onOpen }: { onOpen: () => void }) {
-  return <button type="button" className="rag-chat-launcher" onClick={onOpen} aria-label="AI 투리니에게 금융 개념 질문하기">
+  return <button type="button" className="rag-chat-launcher" onClick={onOpen} aria-label="투리니에게 금융 개념 질문하기">
     <span className="rag-chat-launcher-art" aria-hidden="true" />
-    <b>AI 투리니</b>
+    <b>투리니</b>
   </button>;
 }
 

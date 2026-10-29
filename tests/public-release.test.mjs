@@ -50,8 +50,11 @@ test("account state is saved through the server and old browser demo data is dis
   assert.doesNotMatch(pageSource, /localStorage\.setItem/);
 });
 
-test("GPT portfolio coaching is called through a server-only API route", () => {
-  assert.match(pageSource, /fetch\("\/api\/portfolio-feedback"/);
+test("portfolio results have three tabs and the screen no longer calls the GPT coach route", () => {
+  assert.match(pageSource, />요약<\/button>.*>리밸런싱<\/button>.*>상세 분석<\/button><\/div>/);
+  assert.doesNotMatch(pageSource, />AI 코치<\/button>/);
+  assert.doesNotMatch(pageSource, /fetch\("\/api\/portfolio-feedback"/);
+  // 서버 라우트는 남아 있다 (화면에서 다시 쓰게 되면 그대로 연결)
   assert.match(feedbackRouteSource, /process\.env\.OPENAI_API_KEY/);
   assert.match(feedbackRouteSource, /https:\/\/api\.openai\.com\/v1\/responses/);
   assert.match(feedbackRouteSource, /type: "json_schema"/);
@@ -70,7 +73,7 @@ test("GPT portfolio coaching is called through a server-only API route", () => {
 test("portfolio screen exposes the revised asset classification help", () => {
   assert.match(pageSource, /asset-info-button/);
   assert.doesNotMatch(pageSource, /asset-classification-note/);
-  assert.match(pageSource, /portfolioRuleVersion: PORTFOLIO_RULE_VERSION/);
+  assert.match(pageSource, /ruleVersion: PORTFOLIO_RULE_VERSION/);
   assert.doesNotMatch(pageSource, /분석 가중치/);
   assert.doesNotMatch(pageSource, /scoreMax\}점 만점/);
   assert.doesNotMatch(pageSource, /내부 종합점수/);
@@ -105,8 +108,7 @@ test("안내 화면도 꾸미기 기본 정면 캐릭터를 쓴다", () => {
   assert.doesNotMatch(avatarSource2, /turini-reading-transparent\.png/);
 });
 
-test("AI 코치와 퀴즈 캐릭터는 모자·안경·목도리 없이 기본 투리니를 쓴다", () => {
-  assert.match(pageSource, /customization=\{BASIC_DISPLAY_CUSTOMIZATION\} motion=\{aiFeedbackLoading \? "thinking" : "reading"\} className="turini-ai-coach"/);
+test("퀴즈 캐릭터는 모자·안경·목도리 없이 기본 투리니를 쓴다", () => {
   assert.match(pageSource, /<QuizThinkingTurini key=\{`\$\{question\.id\}-\$\{session\.index\}`\} className="turini-quiz turini-quiz--thinking"/);
   assert.match(pageSource, /customization=\{BASIC_DISPLAY_CUSTOMIZATION\} motion=\{answerCorrect \? "correct" : "wrong"\}/);
   assert.doesNotMatch(pageSource, /<TuriniAvatar motion="thinking" className="turini-quiz"/);
