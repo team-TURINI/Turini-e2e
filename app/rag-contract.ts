@@ -47,11 +47,17 @@ export function portfolioForRag(progress: Record<string, unknown>, saved: Record
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
-/** RAG 답변 끝의 면책 문장을 본문과 나눠 카드 아래쪽에 따로 보여 준다. 없으면 본문만 쓴다. */
+/**
+ * RAG 답변 끝의 면책 문장을 본문과 나눠 카드 아래쪽에 따로 보여 준다.
+ * 끝에서부터 원금 손실·투자 권유·정보 제공을 말하는 문장을 모으고, 그중에 "투자 권유" 고지가 있을 때만 나눈다.
+ */
 export function splitDisclaimer(content: string) {
-  const index = content.search(/(다만\s*)?원금\s*손실\s*가능성/);
-  if (index <= 0 || !/투자\s*권유/.test(content.slice(index))) return { body: content, note: "" };
-  return { body: content.slice(0, index).trim(), note: content.slice(index).trim() };
+  const sentences = content.trim().split(/(?<=[.!?])\s+/u);
+  let start = sentences.length;
+  while (start > 1 && /원금\s*손실|투자\s*권유|정보\s*제공/u.test(sentences[start - 1])) start -= 1;
+  const note = sentences.slice(start).join(" ");
+  if (start === sentences.length || !/투자\s*권유/u.test(note)) return { body: content, note: "" };
+  return { body: sentences.slice(0, start).join(" "), note };
 }
 export type RagReply = {
   answer: string;

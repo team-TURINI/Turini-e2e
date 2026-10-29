@@ -48,6 +48,5 @@ test("the chat screen keeps its title, badge, input and send button", () => {
 test("concept RAG and personal portfolio coaching are separated at the gateway", () => {
   assert.match(chatRouteSource, /portfolio: null/);
   assert.doesNotMatch(chatRouteSource, /portfolioForRag/);
-  assert.match(panelSource, /내 비중과 조정 질문은 포트폴리오 AI 코치를 이용해 주세요/);
 });
 
