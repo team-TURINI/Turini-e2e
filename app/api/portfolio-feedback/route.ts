@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import {
   ASSETS,
+  GRADE_BANDS,
+  HORIZON_CAPS,
   PORTFOLIO_RULE_VERSION,
+  PORTFOLIO_SIGMA_ASOF,
+  TYPE_RANGES,
   analyzeAllocation,
   validateAllocation,
   type Allocation,
@@ -60,12 +64,15 @@ function stringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
-function safeSummary(value: unknown, allowedNumbers: number[], fallback: string) {
+function safeSummary(value: unknown, allowedNumbers: number[], fallback: string, requiredPattern?: RegExp) {
   if (typeof value !== "string" || value.length < 10 || value.length > 350) return fallback;
   if (/사세요|파세요|매수하세요|매도하세요|추천합니다|수익\s*보장|원금\s*보장|예상\s*수익률|목표\s*수익률/.test(value)) return fallback;
+  if (/해외로\s*분산하세요|종류를\s*늘리세요/.test(value)) return fallback;
   if (/\d[\d,]*\s*(원|만원|억)/.test(value)) return fallback;
+  if (requiredPattern && !requiredPattern.test(value)) return fallback;
+  // 부호는 정규식이 떼어 내므로(−4.5 → 4.5) 절댓값으로 비교한다
   const numbers = [...value.matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
-  if (numbers.some((number) => !allowedNumbers.some((allowed) => Math.abs(allowed - number) < 0.051))) return fallback;
+  if (numbers.some((number) => !allowedNumbers.some((allowed) => Math.abs(Math.abs(allowed) - number) < 0.051))) return fallback;
   return value;
 }
 
@@ -105,22 +112,30 @@ export async function POST(request: Request) {
   });
   const weakTags = stringArray(context.weakTags).filter((tag) => CONCEPT_TAGS.includes(tag as typeof CONCEPT_TAGS[number]));
   const cappedNote = computed.recommendationStatus === "horizon_capped" ? " 입력한 투자기간이 성향보다 낮은 위험을 요구해서, 조정안은 기간 기준을 우선했어요." : "";
-  const fallbackSummary = `서비스 변동성 위험은 ${computed.riskGrade}등급(${computed.riskGradeName})이고, 연간 손실 위험(VaR)은 ${computed.riskVar}%, 연환산 변동성은 ${computed.riskScore}%예요. 성향은 '${computed.typeFitLabel}', 기간은 '${computed.horizonFitLabel}'.${cappedNote}`;
-  const allocationPercent = Object.fromEntries(
-    ASSETS.map((asset) => [asset.key, Math.round((context.allocation as Allocation)[asset.key] * 1000) / 10]),
+  const noTargetNote = computed.recommendationStatus === "no_feasible_target" ? ` ${computed.coach}` : "";
+  const fallbackSummary = `서비스 변동성 위험은 ${computed.riskGrade}등급(${computed.riskGradeName})으로 ${computed.riskGradeSentence}. 성향은 '${computed.typeFitLabel}', 기간은 '${computed.horizonFitLabel}'.${cappedNote}${noTargetNote}`;
+  const percentOf = (allocation: Allocation) => Object.fromEntries(
+    ASSETS.map((asset) => [asset.key, Math.round(allocation[asset.key] * 1000) / 10]),
   );
-  const targetPercent = computed.nearTarget ? Object.fromEntries(
-    ASSETS.map((asset) => [asset.key, Math.round(computed.nearTarget!.allocation[asset.key] * 1000) / 10]),
-  ) : null;
+  const allocationPercent = percentOf(context.allocation as Allocation);
+  const targetPercent = computed.nearTarget ? percentOf(computed.nearTarget.allocation) : null;
+  const basePercent = percentOf(computed.baseTarget.allocation);
+  const heldCount = ASSETS.filter((asset) => (context.allocation as Allocation)[asset.key] > 0).length;
+  // 기준 문서 §4 허용 숫자: computed 값 · 상수(범위 경계·기간 상한·등급 밴드·기준일) · 배분 비중 · 자산군 종수
   const allowedNumbers = [
     computed.riskGrade, computed.riskScore, computed.riskVar, Math.round(computed.riskLevel * 100), Math.round(computed.fit * 100), Math.round(computed.horizonFit * 100),
-    computed.downside6m, computed.profileCenter, computed.horizonCenter, computed.horizonCap, computed.diversificationGradeDrop, ASSETS.length,
+    computed.downside6m, computed.profileCenter, computed.horizonCenter, computed.horizonCap, computed.diversificationGradeDrop, computed.distanceToRange,
+    ...(computed.diversificationBaseGrade === null ? [] : [computed.diversificationBaseGrade]),
     ...computed.profileRange, ...computed.horizonRange,
+    ...Object.values(TYPE_RANGES).flat(), ...Object.values(HORIZON_CAPS), ...Object.values(GRADE_BANDS),
+    ...PORTFOLIO_SIGMA_ASOF.split("-").map(Number),
     ...(computed.nearTarget ? [computed.nearTarget.riskGrade, computed.nearTarget.riskScore, computed.nearTarget.riskVar, computed.nearTarget.downside6m] : []),
-    computed.baseTarget.riskGrade, computed.baseTarget.riskScore,
+    computed.baseTarget.riskGrade, computed.baseTarget.riskScore, computed.baseTarget.riskVar, computed.baseTarget.downside6m,
     ...Object.values(allocationPercent),
     ...(targetPercent ? Object.values(targetPercent) : []),
+    ...Object.values(basePercent),
     ...computed.rebalancingActions.map((action) => Math.abs(action.delta)),
+    ASSETS.length, heldCount,
   ];
 
   const controller = new AbortController();
@@ -152,6 +167,13 @@ export async function POST(request: Request) {
           "recommendationStatus가 recommended 또는 horizon_capped가 아니면 improvements는 빈 배열로 반환하세요.",
           "recommendationStatus가 horizon_capped이면 summary_ko에 투자기간이 성향보다 낮은 위험을 요구해 기간 기준을 우선한 조정안이라는 점을 한 문장 넣으세요.",
           "위험이 낮다는 사실, 분산 강점이 없다는 사실을 각각 강점이나 주의점으로 만들지 마세요. 손실 위험(VaR)과 6개월 하방은 실제 손실 한도가 아니에요.",
+          "typeFitLabel·horizonFitLabel 판정 문구는 의역하지 말고 그대로 인용하세요.",
+          "주의점은 computed.cautions와 1:1로만 다루고, 목록 밖의 일반론 주의점을 덧붙이지 마세요.",
+          "VaR는 '연간 손실 위험(VaR) X% 이하 구간'(computed.riskGradeSentence) 문형으로만, 6개월 하방은 '모형상 6개월 후 하방 참고치는 −X%예요' 문형으로만 쓰세요.",
+          "기준 목표(baseTarget)는 '장기적으로는 …' 한 문장으로만 언급하고 자산군별 지시는 하지 마세요.",
+          "'해외로 분산하세요', '종류를 늘리세요'라고 쓰지 말고, 조정안에 없는 자산군을 새로 권하지 마세요.",
+          "recommendationStatus가 no_feasible_target이면 computed.coach의 사유를 summary_ko에 쓰세요.",
+          "엔진이 계산한 등급·판정과 자산군 특성 설명은 교육 정보이므로 거절하지 말고 설명하세요.",
         ].join("\n"),
         input: `다음 JSON만 근거로 피드백을 작성하세요.\n${JSON.stringify({
           computed,
@@ -190,7 +212,9 @@ export async function POST(request: Request) {
     const conceptRefs = (unlocked.length ? unlocked : weakTags.length ? weakTags : returnedRefs).slice(0, 3);
     return NextResponse.json({
       feedback: {
-        summary_ko: friendlyizeExplanation(safeSummary(parsed.summary_ko, allowedNumbers, fallbackSummary)),
+        // horizon_capped 이면 "기간 기준을 우선했다"는 고지가 요약에 반드시 있어야 한다
+        summary_ko: friendlyizeExplanation(safeSummary(parsed.summary_ko, allowedNumbers, fallbackSummary,
+          computed.recommendationStatus === "horizon_capped" ? /기간\s*기준을?\s*우선/ : undefined)),
         // 핵심 판정 문장은 LLM 출력 대신 서버 계산값을 사용해 모순과 환각을 차단한다.
         strengths: computed.strengths,
         cautions: computed.cautions,

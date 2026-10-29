@@ -76,7 +76,8 @@ test("portfolio screen exposes the revised asset classification help", () => {
   assert.doesNotMatch(pageSource, /내부 종합점수/);
   assert.match(pageSource, /서비스 변동성 위험등급/);
   assert.doesNotMatch(pageSource, /portfolio-model-notice/);
-  assert.match(pageSource, /원시 시계열은 아직 재현 검증 전/);
+  assert.match(pageSource, /\{PORTFOLIO_DISCLAIMER\} \{MODEL_LIMITATION\}/);
+  assert.match(portfolioRulesSource, /투자 판단과 그 결과에 대한 책임은 투자자 본인에게 있습니다/);
   assert.match(pageSource, /학습용 조정안/);
   assert.match(pageSource, /3~10년/);
   assert.match(pageSource, /PORTFOLIO_HORIZONS = \["1년 미만", "1~3년", "3~10년", "10년 이상"\]/);
@@ -116,7 +117,7 @@ test("AI 코치와 퀴즈 캐릭터는 모자·안경·목도리 없이 기본 �
 test("포트폴리오 결과 문구는 ~해요\/~이에요체로 맞춘다", () => {
   assert.doesNotMatch(pageSource, /상품등급 아님|실행 항목 아님|제안 안 함|격자 조정안 없음|"산출 불가"/);
   assert.doesNotMatch(pageSource, /\{result\.diversificationStatus\} ·/);
-  assert.match(portfolioRulesSource, /5\.0\.0-portfolio-\$\{C\.RULE_VERSION\}/);
+  assert.match(portfolioRulesSource, /5\.1\.0-portfolio-\$\{C\.RULE_VERSION\}/);
 });
 
 test("홈 맞춤 학습은 사용자 꾸미기를 복원하고 자산 안내만 기본 캐릭터를 쓴다", () => {

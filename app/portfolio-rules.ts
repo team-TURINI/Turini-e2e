@@ -34,6 +34,7 @@ export type TargetSnapshot = {
   riskGradeName: string;
   riskLevel: number;
   downside6m: number;
+  horizonFitLabel: string;
 };
 
 export type PortfolioResult = {
@@ -44,6 +45,7 @@ export type PortfolioResult = {
   riskVar: number;
   riskGrade: number;
   riskGradeName: string;
+  riskGradeSentence: string;
   riskLevel: number;
   downside6m: number;
   fit: number;
@@ -55,9 +57,13 @@ export type PortfolioResult = {
   horizonCap: number;
   profileCenter: number;
   horizonCenter: number;
+  /** 성향 범위까지 남은 %p (범위 안이면 0) */
+  distanceToRange: number;
   diversificationReduction: number | null;
   diversificationStatus: DiversificationStatus;
   diversificationGradeDrop: number;
+  /** 완전 양의 상관 가정(Σw·VaRᵢ)의 등급. 계산할 수 없으면 null */
+  diversificationBaseGrade: number | null;
   characteristics: { growth: TraitLevel; defense: TraitLevel; liquidity: TraitLevel };
   recommendationStatus: RecommendationStatus;
   nearTarget: TargetSnapshot | null;
@@ -73,7 +79,7 @@ export type PortfolioResult = {
 };
 
 // 규칙 버전이 바뀌면 저장된 옛 결과는 다시 계산한다.
-export const PORTFOLIO_RULE_VERSION = `5.0.0-portfolio-${C.RULE_VERSION}`;
+export const PORTFOLIO_RULE_VERSION = `5.1.0-portfolio-${C.RULE_VERSION}`;
 export const PORTFOLIO_MODEL_STATUS: ModelStatus = "generated_from_rules_json";
 export const PORTFOLIO_SIGMA_ASOF = C.SIGMA_ASOF;
 export const MODEL_LIMITATION = C.FREQUENCY === "weekly"
@@ -82,6 +88,10 @@ export const MODEL_LIMITATION = C.FREQUENCY === "weekly"
 
 export const OK_TYPE_LABEL = "성향과 잘 맞아요";
 export const OK_HORIZON_LABEL = "투자기간 기준 안이에요";
+/** 기준 문서 §4 고정 면책 문구 */
+export const PORTFOLIO_DISCLAIMER = "본 분석은 교육 목적의 참고 자료이며 특정 금융상품에 대한 투자 권유가 아닙니다. 위험도는 과거 3년 수익률에 근거한 추정이며 미래 손익을 보장하지 않습니다. 투자 판단과 그 결과에 대한 책임은 투자자 본인에게 있습니다.";
+export const VAR_HELP = "연간 손실 위험(VaR)은 과거 3년 수익률 중 나쁜 쪽 2.5%에 해당하는 손실을 1년 단위로 환산한 값이에요. 실제 손실 한도가 아니에요.";
+export const DOWNSIDE_HELP = "과거 변동성과 정규 가정으로 계산한 값이며 보유기간 중 최대손실이 아니에요.";
 
 const ASSET_META: Omit<AssetDefinition, "volatility">[] = [
   { key: "domestic", label: "국내주식", short: "국내", color: "#58cc02", icon: "KR", help: "국내 거래소에 상장된 개별기업 주식의 합계예요. 국내 주식형 ETF·펀드는 ‘주식형 ETF·펀드’에 입력해 주세요." },
@@ -89,8 +99,15 @@ const ASSET_META: Omit<AssetDefinition, "volatility">[] = [
   { key: "bond", label: "채권", short: "채권", color: "#9069e7", icon: "B", help: "직접채권과 일반 채권 ETF·채권형 펀드를 합산해요. 장기채·하이일드·환노출 해외채권은 실제 위험도가 대표값보다 높을 수 있어요." },
   { key: "equityFund", label: "주식형 ETF·펀드", short: "주식형", color: "#ff9600", icon: "F", help: "주식에 주로 투자하는 ETF·펀드예요. 국내·해외 지수형, 액티브형, 섹터·테마형을 포함하고 레버리지·인버스 상품은 제외해요." },
   { key: "cash", label: "현금성자산", short: "현금", color: "#2bb6a8", icon: "₩", help: "현금, 입출금·단기 예금, CMA·MMF처럼 비교적 빠르게 사용할 수 있는 자산이에요. 상품마다 원금보장·예금자보호 여부는 달라요." },
-  { key: "gold", label: "금", short: "금", color: "#ffc800", icon: "Au", help: "실물 금, 금 통장과 금 현물 가격을 추종하는 일반 상품을 합산해요. 환헤지형(H) 금 ETF는 환율 변동이 빠져 실제 위험도가 대표값보다 낮을 수 있어요. 금광기업 주식형과 레버리지·인버스 상품은 포함하지 않아요." },
+  { key: "gold", label: "금", short: "금", color: "#ffc800", icon: "Au", help: goldHelp() },
 ];
+// 대표 시계열이 환헤지형(H)인 동안에는 도움말 방향이 반대가 되므로 상수의 프록시 이름으로 고른다.
+function goldHelp() {
+  const hedgedProxy = C.PROXIES.gold.includes("(H)");
+  return `실물 금, 금 통장과 금 현물 가격을 추종하는 일반 상품을 합산해요. ${hedgedProxy
+    ? "지금 대표값은 환헤지형(H) 금 ETF로 계산한 임시값이라, 환율 영향을 받는 금 현물·골드뱅킹의 실제 위험도는 대표값과 다를 수 있어요."
+    : "환헤지형(H) 금 ETF는 환율 변동이 빠져 실제 위험도가 대표값보다 낮을 수 있어요."} 금광기업 주식형과 레버리지·인버스 상품은 포함하지 않아요.`;
+}
 export const ASSETS: AssetDefinition[] = ASSET_META.map((asset) => ({ ...asset, volatility: round(C.ASSET_SIGMA[asset.key], 2) }));
 export const ASSET_KEYS = ASSETS.map((asset) => asset.key) as AssetKey[];
 const MODEL_ORDER = C.MODEL_ORDER as readonly AssetKey[];
@@ -186,11 +203,17 @@ export function riskVarFor(allocation: Allocation) {
 /** VaR₉₇.₅(%) → 서비스 변동성 등급 1~6 (현행 공시 밴드 1/10/20/30/50) */
 export function riskGradeFor(riskVar: number) {
   if (!finiteNumber(riskVar) || riskVar < 0) throw new Error("손실 위험(VaR)은 0 이상의 숫자여야 해요.");
-  const names: Record<number, string> = { 6: "매우 낮음", 5: "낮음", 4: "보통", 3: "다소 높음", 2: "높음", 1: "매우 높음" };
+  const names: Record<number, string> = { 6: "매우낮은위험", 5: "낮은위험", 4: "보통위험", 3: "다소높은위험", 2: "높은위험", 1: "매우높은위험" };
   for (const grade of [6, 5, 4, 3, 2] as const) {
     if (riskVar <= C.GRADE_BANDS[String(grade) as keyof typeof C.GRADE_BANDS] + EPS) return { grade, name: names[grade] };
   }
   return { grade: 1, name: names[1] };
+}
+
+/** 등급별 사용자 문장 — "연간 손실 위험(VaR) X% 이하 구간이에요" (1등급만 "50% 초과") */
+export function riskGradeSentenceFor(grade: number) {
+  if (grade === 1) return `연간 손실 위험(VaR) ${C.GRADE_BANDS["2"]}% 초과 구간이에요`;
+  return `연간 손실 위험(VaR) ${C.GRADE_BANDS[String(grade) as keyof typeof C.GRADE_BANDS]}% 이하 구간이에요`;
 }
 
 function downside6mFor(volatility: number) { return Math.expm1(-C.DOWNSIDE.z * (volatility / 100) * Math.sqrt(C.DOWNSIDE.horizonFraction)) * 100; }
@@ -244,11 +267,11 @@ function displayFit(fit: number) {
   return r;
 }
 
-function snapshot(allocation: Allocation): TargetSnapshot {
+function snapshot(allocation: Allocation, horizon: PortfolioHorizon): TargetSnapshot {
   const sigma = portfolioVolatilityRaw(allocation);
   const value = portfolioVarRaw(allocation);
   const grade = riskGradeFor(value);
-  return { allocation: { ...allocation }, riskScore: round(sigma, 4), riskVar: round(value, 4), riskGrade: grade.grade, riskGradeName: grade.name, riskLevel: round(sigma / SIGMA_MAX, 4), downside6m: round(downside6mFor(sigma), 2) };
+  return { allocation: { ...allocation }, riskScore: round(sigma, 4), riskVar: round(value, 4), riskGrade: grade.grade, riskGradeName: grade.name, riskLevel: round(sigma / SIGMA_MAX, 4), downside6m: round(downside6mFor(sigma), 2), horizonFitLabel: horizonFitFor(sigma, horizon).label };
 }
 
 // ── 가까운 목표 탐색 ──────────────────────────────────────────────
@@ -371,16 +394,31 @@ function diversificationFor(allocation: Allocation, sigma: number, value: number
   const held = ASSET_KEYS.filter((key) => allocation[key] > 1e-12).length;
   const budget = ASSET_KEYS.reduce((sum, key) => sum + allocation[key] * Math.sqrt(C.COV_PCT2[MODEL_ORDER.indexOf(key)][MODEL_ORDER.indexOf(key)]), 0);
   const eps = C.DIVERSIFICATION.epsilon;
-  if (!finiteNumber(budget) || !finiteNumber(sigma)) return { status: "invalid" as const, reduction: null, gradeDrop: 0, held };
-  if (budget <= eps) return { status: "zero_reference" as const, reduction: null, gradeDrop: 0, held };
+  if (!finiteNumber(budget) || !finiteNumber(sigma)) return { status: "invalid" as const, reduction: null, gradeDrop: 0, baseGrade: null, held };
+  if (budget <= eps) return { status: "zero_reference" as const, reduction: null, gradeDrop: 0, baseGrade: null, held };
   let reduction = held <= 1 ? 0 : 1 - sigma / budget;
   if (Math.abs(reduction) <= eps) reduction = 0;
   else if (reduction > 1 && reduction <= 1 + eps) reduction = 1;
-  else if (reduction < -eps || reduction > 1 + eps) return { status: "invalid" as const, reduction: null, gradeDrop: 0, held };
+  else if (reduction < -eps || reduction > 1 + eps) return { status: "invalid" as const, reduction: null, gradeDrop: 0, baseGrade: null, held };
   // 완전 양의 상관 가정의 VaR = 자산별 VaR 가중합. 등급 번호는 위험이 낮을수록 크다 → 하락 폭 = 실제 등급 − 가정 등급
   const varBudget = ASSET_KEYS.reduce((sum, key) => sum + allocation[key] * C.ASSET_VAR[key], 0);
-  const gradeDrop = held >= 2 ? Math.max(0, riskGradeFor(value).grade - riskGradeFor(varBudget).grade) : 0;
-  return { status: "valid" as const, reduction, gradeDrop, held };
+  const baseGrade = riskGradeFor(varBudget).grade;
+  const gradeDrop = held >= 2 ? Math.max(0, riskGradeFor(value).grade - baseGrade) : 0;
+  return { status: "valid" as const, reduction, gradeDrop, baseGrade, held };
+}
+
+/** 조정 액션 정렬 — |delta| 내림차순, 동률이면 자산군 σ 내림차순, 그다음 고정 자산군 순서 */
+function compareActions(left: { asset: AssetKey; delta: number }, right: { asset: AssetKey; delta: number }) {
+  return Math.abs(right.delta) - Math.abs(left.delta)
+    || C.ASSET_SIGMA[right.asset] - C.ASSET_SIGMA[left.asset]
+    || MODEL_ORDER.indexOf(left.asset) - MODEL_ORDER.indexOf(right.asset);
+}
+
+/** 성향 범위까지 남은 %p (범위 안이면 0) */
+function distanceToRangeFor(value: number, range: Range) {
+  if (value < range[0] - EPS) return range[0] - value;
+  if (value > range[1] + EPS) return value - range[1];
+  return 0;
 }
 
 const UNLOCK_TAG_BY_ASSET = C.UNLOCK_TAGS as Record<AssetKey, string[]>;
@@ -406,12 +444,13 @@ export function analyzeAllocation(current: Allocation, tendency: PortfolioTenden
   const div = diversificationFor(current, sigma, value);
 
   const strengthAxes: StrengthAxis[] = [];
-  if (typeFit.direction === "안") strengthAxes.push({ axis: "type_fit", sentence: `연환산 변동성 ${round(sigma, 2)}%가 ${profile} 기준 범위 ${round(profileRange[0], 2)}~${round(profileRange[1], 2)}% 안에 들어와 성향과 잘 맞아요.` });
-  if (div.status === "valid" && div.held >= 2 && div.gradeDrop >= C.DIVERSIFICATION.minGradeDrop) {
-    const from = riskGradeFor(ASSET_KEYS.reduce((sum, key) => sum + current[key] * C.ASSET_VAR[key], 0));
-    strengthAxes.push({ axis: "diversification", sentence: `자산을 섞은 효과로 위험이 ${from.grade}등급(${from.name})에서 ${grade.grade}등급(${grade.name})으로 ${div.gradeDrop}단계 낮아져 있어요.` });
+  // 강점 문장은 기준 문서 §3-7 의 고정 문장
+  if (typeFit.direction === "안") strengthAxes.push({ axis: "type_fit", sentence: "현재 배분의 위험 수준이 진단된 성향에 대해 설정한 기준 범위에 들어와 있어요." });
+  if (div.status === "valid" && div.baseGrade !== null && div.held >= 2 && div.gradeDrop >= C.DIVERSIFICATION.minGradeDrop) {
+    const fromName = riskGradeFor(ASSET_KEYS.reduce((sum, key) => sum + current[key] * C.ASSET_VAR[key], 0)).name;
+    strengthAxes.push({ axis: "diversification", sentence: `자산을 섞은 효과로 위험이 ${div.baseGrade}등급(${fromName})에서 ${grade.grade}등급(${grade.name})으로 ${div.gradeDrop}단계 낮아져 있어요.` });
   }
-  if (periodFit.direction === "안") strengthAxes.push({ axis: "horizon_fit", sentence: `연환산 변동성 ${round(sigma, 2)}%가 ${typedHorizon} 투자기간이 허용하는 상한 ${round(HORIZON_CAPS[typedHorizon], 2)}% 안이라 기간 기준에 맞아요.` });
+  if (periodFit.direction === "안") strengthAxes.push({ axis: "horizon_fit", sentence: "현재 배분의 위험 수준이 입력한 투자기간이 허용하는 범위 안에 있어요." });
 
   const baseTarget = BASE_TARGETS[profile];
   const signals = allocationSignalIds(current).map((id) => ({ id, kind: signalKind(id, current, baseTarget), text: SIGNAL_META[id].text }));
@@ -422,24 +461,28 @@ export function analyzeAllocation(current: Allocation, tendency: PortfolioTenden
   ];
 
   const recommendation = recommendationFor(current, sigma, profile, typedHorizon);
-  const nearTarget = recommendation.allocation ? snapshot(recommendation.allocation) : null;
+  const nearTarget = recommendation.allocation ? snapshot(recommendation.allocation, typedHorizon) : null;
   const unchanged = recommendation.status === "hold" || ("unchanged" in recommendation && recommendation.unchanged);
   const allDeltas = nearTarget && !unchanged ? ASSET_KEYS.map((asset) => ({ asset, delta: round((nearTarget.allocation[asset] - current[asset]) * 100, 1) })) : [];
-  const rebalancingActions = allDeltas.filter((item) => Math.abs(item.delta) >= C.REBALANCE_MIN_DELTA * 100 - 1e-9).map((item) => ({ ...item, action: (item.delta > 0 ? "확대" : "축소") as "확대" | "축소" }));
-  const residualItems = allDeltas.filter((item) => Math.abs(item.delta) >= C.RESIDUAL_MIN_DELTA * 100 && Math.abs(item.delta) < C.REBALANCE_MIN_DELTA * 100);
-  const unlockTags = nearTarget && !unchanged
-    ? ASSET_KEYS.filter((key) => current[key] <= 1e-12 && nearTarget.allocation[key] > 0).flatMap((key) => UNLOCK_TAG_BY_ASSET[key]).filter((tag, i, all) => all.indexOf(tag) === i)
-    : [];
+  const rebalancingActions = allDeltas.filter((item) => Math.abs(item.delta) >= C.REBALANCE_MIN_DELTA * 100 - 1e-9).sort(compareActions).map((item) => ({ ...item, action: (item.delta > 0 ? "확대" : "축소") as "확대" | "축소" }));
+  const residualItems = allDeltas.filter((item) => Math.abs(item.delta) >= C.RESIDUAL_MIN_DELTA * 100 && Math.abs(item.delta) < C.REBALANCE_MIN_DELTA * 100).sort(compareActions);
+  // 가까운 목표 또는 기준 목표에 새로 등장하는 자산군의 개념 태그 (가까운 목표 쪽 먼저). no_feasible_target 이면 만들지 않는다
+  const newAssets = (target: Allocation | undefined) => target ? ASSET_KEYS.filter((key) => current[key] <= 1e-12 && target[key] > 0) : [];
+  const unlockTags = recommendation.status === "no_feasible_target" ? [] : [
+    ...newAssets(nearTarget && !unchanged ? nearTarget.allocation : undefined),
+    ...newAssets(baseTarget),
+  ].flatMap((key) => UNLOCK_TAG_BY_ASSET[key]).filter((tag, i, all) => all.indexOf(tag) === i);
   const metrics = allocationMetrics(current);
   return {
     ruleVersion: PORTFOLIO_RULE_VERSION, modelStatus: PORTFOLIO_MODEL_STATUS, sigmaAsof: PORTFOLIO_SIGMA_ASOF,
-    riskScore: round(sigma, 4), riskVar: round(value, 4), riskGrade: grade.grade, riskGradeName: grade.name,
+    riskScore: round(sigma, 4), riskVar: round(value, 4), riskGrade: grade.grade, riskGradeName: grade.name, riskGradeSentence: riskGradeSentenceFor(grade.grade),
     riskLevel: round(sigma / SIGMA_MAX, 4), downside6m: round(downside6mFor(sigma), 2),
     fit: displayFit(typeFit.fit), horizonFit: displayFit(periodFit.fit), typeFitLabel: typeFit.label, horizonFitLabel: periodFit.label,
     profileRange, horizonRange, horizonCap: round(HORIZON_CAPS[typedHorizon], 4), profileCenter: round(RISK_CENTERS[profile], 4), horizonCenter: round(HORIZON_CENTERS[typedHorizon], 4),
-    diversificationReduction: div.reduction === null ? null : round(div.reduction, 4), diversificationStatus: div.status, diversificationGradeDrop: div.gradeDrop,
+    distanceToRange: round(distanceToRangeFor(sigma, profileRange), 4),
+    diversificationReduction: div.reduction === null ? null : round(div.reduction, 4), diversificationStatus: div.status, diversificationGradeDrop: div.gradeDrop, diversificationBaseGrade: div.baseGrade,
     characteristics: { growth: trait(metrics.growth, TH.growth[0], TH.growth[1]), defense: trait(metrics.defense, TH.defense[0], TH.defense[1]), liquidity: trait(metrics.cash, TH.cash[0], TH.cash[1]) },
-    recommendationStatus: recommendation.status, nearTarget, baseTarget: snapshot(baseTarget), rebalancingActions, residualItems, signals,
+    recommendationStatus: recommendation.status, nearTarget, baseTarget: snapshot(baseTarget, typedHorizon), rebalancingActions, residualItems, signals,
     strengthAxes, strengths: strengthAxes.map((axis) => axis.sentence), cautions, unlockTags, coach: STATUS_COACH[recommendation.status],
   };
 }
