@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseChatInput, portfolioForRag, parseRagReply } from "../app/rag-contract.ts";
+import { parseChatInput, portfolioForRag, parseRagReply, splitDisclaimer } from "../app/rag-contract.ts";
 
 test("question input ignores forged user/state/portfolio and rejects bad identifiers", () => {
   assert.deepEqual(parseChatInput({ question: " ETF? ", user_id: "someone-else", state: { forged: true }, portfolio: {} }), { question: "ETF?", conversationId: undefined });
@@ -34,3 +34,14 @@ test("only valid state and matching assistant message can be saved", () => {
   assert.throws(() => parseRagReply({ ...payload, messages: [{ role: "user", content: "질문" }, { role: "assistant", content: "다른 답변" }] }), /INVALID/);
 });
 
+
+test("the trailing disclaimer of a RAG answer is split off for the card footer", () => {
+  const answer = "ETF는 거래소에 상장돼요. 다만 원금 손실 가능성이 있으니 유의하시기 바라며, 본 안내는 투자 권유가 아닌 정보 제공이에요.";
+  assert.deepEqual(splitDisclaimer(answer), {
+    body: "ETF는 거래소에 상장돼요.",
+    note: "다만 원금 손실 가능성이 있으니 유의하시기 바라며, 본 안내는 투자 권유가 아닌 정보 제공이에요.",
+  });
+  // 면책 문장이 없거나 본문 자체가 원금 손실 설명이면 나누지 않는다
+  assert.deepEqual(splitDisclaimer("ETF는 거래소에 상장돼요."), { body: "ETF는 거래소에 상장돼요.", note: "" });
+  assert.deepEqual(splitDisclaimer("원금 손실 가능성이 있는 상품이에요."), { body: "원금 손실 가능성이 있는 상품이에요.", note: "" });
+});

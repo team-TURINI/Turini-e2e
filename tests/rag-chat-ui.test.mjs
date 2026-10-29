@@ -8,10 +8,10 @@ const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "
 const chatRouteSource = await readFile(new URL("../app/api/chat/route.ts", import.meta.url), "utf8");
 
 test("a submitted question is rendered before the RAG request finishes", () => {
-  const optimisticUpdate = panelSource.indexOf('setMessages((previous) => [...previous, { role: "user", content: submitted }]');
+  const optimisticUpdate = panelSource.indexOf('setMessages((previous) => [...previous, { role: "user", content: submitted, at: Date.now() }]');
   const request = panelSource.indexOf('const response = await fetch("/api/chat"', optimisticUpdate);
   assert.ok(optimisticUpdate >= 0 && request > optimisticUpdate);
-  assert.match(panelSource, /setMessages\(\(previous\) => \[\.\.\.previous, assistant\]\)/);
+  assert.match(panelSource, /setMessages\(\(previous\) => \[\.\.\.previous, \{ \.\.\.assistant, at: Date\.now\(\) \}\]\)/);
   assert.doesNotMatch(panelSource, /\.\.\.data\.messages/);
 });
 
@@ -22,21 +22,27 @@ test("RAG waiting state uses an accessible animated three-dot assistant bubble",
   assert.match(chatCss, /prefers-reduced-motion: reduce/);
 });
 
-test("the question panel lives on the portfolio screen with its separate AI coach", () => {
-  const home = pageSource.indexOf('{view === "home"');
-  const portfolio = pageSource.indexOf('{view === "portfolio"');
-  const assets = pageSource.indexOf('{view === "assets"');
-  const chat = pageSource.indexOf("<ChatPanel", portfolio);
-  assert.ok(home >= 0 && portfolio > home && chat > portfolio && chat < assets);
-  assert.equal(pageSource.slice(home, portfolio).includes("<ChatPanel"), false);
+test("the chat opens from a floating button on every tab, not inside a single screen", () => {
+  const firstView = pageSource.indexOf('{view === "home"');
+  const nav = pageSource.indexOf('<nav className="mobile-nav"');
+  const chat = pageSource.indexOf("<ChatPanel");
+  const launcher = pageSource.indexOf("<ChatLauncher");
+  // 탭별 화면 블록이 끝난 뒤, 하단 탭 바로 앞에 한 번만 둔다
+  assert.ok(firstView >= 0 && launcher > firstView && chat > launcher && nav > chat);
   assert.equal(pageSource.indexOf("<ChatPanel", chat + 1), -1);
+  assert.match(pageSource, /\{!chatOpen && <ChatLauncher onOpen=\{\(\) => setChatOpen\(true\)\} \/>\}/);
+  assert.match(pageSource, /onClick=\{\(\) => \{ setChatOpen\(false\); navigate\(item\); \}\}/);
   assert.match(pageSource, />AI 코치<\/button>/);
+  assert.match(chatCss, /\.rag-chat-launcher \{[^}]*position: fixed/);
 });
 
-test("the portfolio question panel keeps its visible title and input", () => {
+test("the chat screen keeps its title, badge, input and send button", () => {
   assert.match(panelSource, /id="rag-chat"/);
-  assert.match(panelSource, /<h2>투리니에게 질문<\/h2>/);
+  assert.match(panelSource, /<h2 id="rag-chat-title">금융 질의응답<\/h2><span>AI 학습 도우미<\/span>/);
   assert.match(panelSource, /id="rag-question"/);
+  assert.match(panelSource, /placeholder="궁금한 금융 개념을 물어보세요"/);
+  assert.match(panelSource, /className="rag-chat-send"[^>]+aria-label="보내기"/);
+  assert.match(panelSource, /aria-label="채팅 닫기"/);
 });
 
 test("concept RAG and personal portfolio coaching are separated at the gateway", () => {

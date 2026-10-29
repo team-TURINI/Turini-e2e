@@ -46,6 +46,13 @@ export function portfolioForRag(progress: Record<string, unknown>, saved: Record
 }
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+/** RAG 답변 끝의 면책 문장을 본문과 나눠 카드 아래쪽에 따로 보여 준다. 없으면 본문만 쓴다. */
+export function splitDisclaimer(content: string) {
+  const index = content.search(/(다만\s*)?원금\s*손실\s*가능성/);
+  if (index <= 0 || !/투자\s*권유/.test(content.slice(index))) return { body: content, note: "" };
+  return { body: content.slice(0, index).trim(), note: content.slice(index).trim() };
+}
 export type RagReply = {
   answer: string;
   state: Record<string, unknown>;
