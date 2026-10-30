@@ -90,8 +90,8 @@ export const OK_TYPE_LABEL = "성향과 잘 맞아요";
 export const OK_HORIZON_LABEL = "투자기간 기준 안이에요";
 /** 기준 문서 §4 고정 면책 문구 */
 export const PORTFOLIO_DISCLAIMER = "본 분석은 교육 목적의 참고 자료이며 특정 금융상품에 대한 투자 권유가 아닙니다. 위험도는 과거 3년 수익률에 근거한 추정이며 미래 손익을 보장하지 않습니다. 투자 판단과 그 결과에 대한 책임은 투자자 본인에게 있습니다.";
-export const VAR_HELP = "연간 손실 위험(VaR)은 과거 3년 수익률 중 나쁜 쪽 2.5%에 해당하는 손실을 1년 단위로 환산한 값이에요. 실제 손실 한도가 아니에요.";
-export const DOWNSIDE_HELP = "과거 변동성과 정규 가정으로 계산한 값이며 보유기간 중 최대손실이 아니에요.";
+export const VAR_HELP = "과거 3년 중 결과가 가장 나빴던 하위 2.5% 구간의 손실을 1년 기준으로 바꾼 값이에요. 위험등급은 이 값으로 정해요. 실제로 잃을 수 있는 최대치는 아니에요.";
+export const DOWNSIDE_HELP = "6개월 뒤 결과가 나쁜 쪽으로 20번 중 1번쯤 나올 수 있는 수준이에요. 과거의 흔들림으로 계산한 참고값이라, 그 사이 가장 크게 떨어지는 폭과는 달라요.";
 
 const ASSET_META: Omit<AssetDefinition, "volatility">[] = [
   { key: "domestic", label: "국내주식", short: "국내", color: "#58cc02", icon: "KR", help: "국내 거래소에 상장된 개별기업 주식의 합계예요. 국내 주식형 ETF·펀드는 ‘주식형 ETF·펀드’에 입력해 주세요." },

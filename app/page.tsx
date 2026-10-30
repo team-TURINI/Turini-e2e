@@ -42,8 +42,10 @@ import {
   ASSETS,
   DOWNSIDE_HELP,
   EMPTY_ALLOCATION,
+  HORIZON_CAPS,
   PORTFOLIO_DISCLAIMER,
   PORTFOLIO_RULE_VERSION,
+  TYPE_RANGES,
   VAR_HELP,
   allocationTotal,
   analyzeAllocation,
@@ -231,12 +233,32 @@ const BASIC_DISPLAY_CUSTOMIZATION: TuriniCustomization = {
   background: null,
 };
 
-/** 분산효과 계산 상태를 사용자에게 보여 줄 친근한 문장으로 바꿉니다. */
-const DIVERSIFICATION_STATUS_TEXT: Record<PortfolioResult["diversificationStatus"], string> = {
-  valid: "정상적으로 계산했어요",
-  zero_reference: "비교할 기준 변동성이 0이에요",
-  invalid: "값을 계산할 수 없어요",
-};
+/**
+ * 성향 범위 카드 설명. 결과에 저장된 범위·상한 값으로 성향과 투자기간 이름을 찾아
+ * "안정형에 맞는 구조예요"처럼 말합니다 (결과 형식은 바꾸지 않습니다).
+ */
+function profileFitText(result: PortfolioResult) {
+  const profile = (Object.keys(TYPE_RANGES) as (keyof typeof TYPE_RANGES)[]).find((key) =>
+    TYPE_RANGES[key][0] === result.profileRange[0] && TYPE_RANGES[key][1] === result.profileRange[1]) || "내 성향";
+  const horizon = (Object.keys(HORIZON_CAPS) as (keyof typeof HORIZON_CAPS)[]).find((key) =>
+    Math.abs(HORIZON_CAPS[key] - result.horizonCap) < 1e-3);
+  const [low, high] = result.profileRange;
+  const fit = result.riskScore > high
+    ? `지금 배분은 이보다 더 크게 흔들려서 ${profile}보다 공격적인 구조예요.`
+    : result.riskScore < low
+      ? `지금 배분은 이보다 덜 흔들려서 ${profile}보다 안정적인 구조예요.`
+      : `지금 배분은 이 안에 있어서 ${profile}에 맞는 구조예요.`;
+  const period = horizon ? `투자기간 ${horizon}에는` : "입력한 투자기간에는";
+  return `${profile}에 맞는 흔들림 정도예요. ${fit} ${period} 변동성 ${result.horizonCap.toFixed(2)}%까지가 적당해요.`;
+}
+
+/** 분산효과 감소율을 사용자가 바로 이해할 수 있는 문장으로 바꿉니다. */
+function diversificationText(result: PortfolioResult) {
+  if (result.diversificationStatus === "zero_reference") return "흔들림이 거의 없는 자산만 있어서 따로 계산하지 않았어요.";
+  if (result.diversificationStatus !== "valid" || result.diversificationReduction === null) return "지금은 계산할 수 없어요.";
+  if (result.diversificationReduction === 0) return "자산이 하나뿐이라 섞어서 줄어든 흔들림이 없어요.";
+  return `자산끼리 서로 다르게 움직인 덕분에, 모두 똑같이 움직였을 때보다 흔들림이 ${Math.round(result.diversificationReduction * 100)}% 줄었어요.`;
+}
 
 /** 자산 안내 화면에서만 사용하는 새싹·기본 초록 가방 프리셋입니다. */
 const BASIC_BACKPACK_CUSTOMIZATION: TuriniCustomization = {
@@ -1638,11 +1660,11 @@ function PortfolioResults({ result, allocation, tab, setTab }: { result: Portfol
   };
   return <section id="portfolio-result" className="portfolio-result card-block">
     <div className="result-hero"><div><p>서비스 변동성 위험등급</p><strong>{result.riskGrade}<small>등급</small></strong><span>{result.riskGradeName} · {result.riskGradeSentence}</span></div><TuriniAvatar motion="gauge" className="turini-score" replayKey={result.riskGrade} level={(Number(result.riskGrade) - 1) / 5} /></div>
-    <div className="score-cards verdict-cards"><article><span>연환산 변동성</span><strong>{result.riskScore}<small>%</small></strong><small>공분산으로 계산한 위험값이에요 · 공식 상품등급은 아니에요</small></article><article><span>성향 판정</span><strong className="verdict-text">{result.typeFitLabel}</strong><small>기준 범위 {result.profileRange[0].toFixed(2)}~{result.profileRange[1].toFixed(2)}%{result.distanceToRange > 0 ? ` · 성향 범위까지 ${result.distanceToRange.toFixed(1)}%p 남았어요` : ""}</small></article><article><span>기간 판정</span><strong className="verdict-text">{result.horizonFitLabel}</strong><small>허용 상한 {result.horizonCap.toFixed(2)}%</small></article></div>
+    <div className="score-cards verdict-cards"><article><span>연환산 변동성</span><strong>{result.riskScore.toFixed(2)}<small>%</small></strong></article><article><span>성향 판정</span><strong className="verdict-text">{result.typeFitLabel}</strong>{result.distanceToRange > 0 ? <small>성향 범위까지 {result.distanceToRange.toFixed(1)}%p 남았어요</small> : null}</article><article><span>기간 판정</span><strong className="verdict-text">{result.horizonFitLabel}</strong></article></div>
     <div className="portfolio-tabs"><button className={tab === "summary" ? "active" : ""} onClick={() => setTab("summary")}>요약</button><button className={tab === "rebalance" ? "active" : ""} onClick={() => setTab("rebalance")}>리밸런싱</button><button className={tab === "detail" ? "active" : ""} onClick={() => setTab("detail")}>상세 분석</button></div>
     {tab === "summary" && <div className="tab-panel"><div className="coach-banner"><BasicReadingTurini className="turini-coach" decorative /><div><b>투리니 코치의 한마디</b><p>{result.coach}</p></div></div><div className="analysis-columns"><article className="good"><h3>강점 · {result.strengths.length}개</h3>{result.strengths.length ? <ul>{result.strengths.map((item) => <li key={item}>{item}</li>)}</ul> : <p>세 가지 검증 축에서 확정할 수 있는 강점이 아직 없어요.</p>}</article><article className="care"><h3>확인할 점</h3>{result.cautions.length ? <ul>{result.cautions.map((item) => <li key={item}>{item}</li>)}</ul> : <p>지금은 따로 확인할 점이 없어요.</p>}</article></div></div>}
     {tab === "rebalance" && <div className="tab-panel"><div className="target-chart"><div className="allocation-donut small" style={targetChartStyle}><span>{result.nearTarget ? "조정안" : "비교"}</span></div><div><h3>{statusTitle[result.recommendationStatus]}</h3><p>{result.coach}</p></div></div><div className="rebalance-table target-compare"><div className="table-head"><span>배분</span><span>변동성</span><span>등급</span><span>6개월 하방 참고치</span></div>{([["현재", { riskScore: result.riskScore, riskGrade: result.riskGrade, riskGradeName: result.riskGradeName, downside6m: result.downside6m }], ...(result.nearTarget && result.recommendationStatus !== "hold" ? [["가까운 목표", result.nearTarget]] : []), [`기준 목표 · ${result.baseTarget.horizonFitLabel}`, result.baseTarget]] as [string, Pick<PortfolioResult, "riskScore" | "riskGrade" | "riskGradeName" | "downside6m">][]).map(([label, row]) => <div key={label}><strong>{label}</strong><span>{row.riskScore.toFixed(2)}%</span><span>{row.riskGrade}등급</span><b>{row.downside6m}% · {row.riskGradeName}</b></div>)}</div>{["recommended", "horizon_capped"].includes(result.recommendationStatus) && result.nearTarget && result.rebalancingActions.length ? <div className="rebalance-table"><div className="table-head"><span>자산</span><span>현재</span><span>조정안</span><span>차이 · 방향</span></div>{result.rebalancingActions.map((item) => { const asset = ASSETS.find((candidate) => candidate.key === item.asset)!; return <div key={asset.key}><strong><i style={{ background: asset.color }} />{asset.label}</strong><span>{toPercent(allocation[asset.key])}%</span><span>{toPercent(result.nearTarget!.allocation[asset.key])}%</span><b className={item.delta > 0 ? "buy" : "sell"}>{item.delta > 0 ? "+" : ""}{item.delta}%p · {item.delta > 0 ? "늘리기" : "줄이기"}</b></div>; })}</div> : <p className="fine-print">이 상태에서는 실행 항목을 만들지 않아요.</p>}{result.residualItems.length ? <div className="residual-list"><b>5%p 미만 차이는 참고만 해요 · 실행 항목은 아니에요</b>{result.residualItems.map((item) => { const asset = ASSETS.find((candidate) => candidate.key === item.asset)!; return <span key={item.asset}>{asset.label} {item.delta > 0 ? "+" : ""}{item.delta}%p</span>; })}</div> : null}<p className="fine-print">성향별 기본 배분은 비교 기준일 뿐, 조정 목표로 그대로 쓰지 않아요. 비율 차이와 방향만 보여 주고 금액·상품은 제안하지 않아요.</p></div>}
-    {tab === "detail" && <div className="tab-panel detail-grid"><article><span>연환산 변동성</span><strong>{result.riskScore}%</strong><p>공분산으로 계산했어요 · 기준일 {result.sigmaAsof}</p></article><article><span>연간 손실 위험(VaR)</span><strong>{result.riskVar}%</strong><p>{result.riskGradeSentence}. {VAR_HELP}</p></article><article><span>6개월 하방 참고치</span><strong>{result.downside6m}%</strong><p>모형상 6개월 후 하방 참고치는 {result.downside6m}%예요. {DOWNSIDE_HELP}</p></article><article><span>분산효과 감소율</span><strong>{result.diversificationReduction === null ? "계산할 수 없어요" : `${Math.round(result.diversificationReduction * 100)}%`}</strong><p>{DIVERSIFICATION_STATUS_TEXT[result.diversificationStatus]} · 자산이 하나뿐이면 강점으로 보지 않아요.</p></article><article><span>기준 범위</span><strong>{result.profileRange[0].toFixed(2)}~{result.profileRange[1].toFixed(2)}%</strong><p>투자기간이 허용하는 위험 상한은 {result.horizonCap.toFixed(2)}%예요.</p></article></div>}
+    {tab === "detail" && <div className="tab-panel detail-grid"><article><span>연환산 변동성</span><strong>{result.riskScore.toFixed(2)}%</strong><p>1년 동안 수익률이 보통 이 정도 폭으로 오르내려요. 숫자가 클수록 크게 흔들리는 배분이에요.</p></article><article><span>연간 손실 위험(VaR)</span><strong>{result.riskVar.toFixed(2)}%</strong><p>{VAR_HELP} 그래서 지금 배분은 {result.riskGrade}등급({result.riskGradeName})이에요.</p></article><article><span>6개월 하방 참고치</span><strong>{result.downside6m}%</strong><p>{DOWNSIDE_HELP}</p></article><article><span>분산 효과</span><strong>{result.diversificationReduction === null ? "-" : `${Math.round(result.diversificationReduction * 100)}%`}</strong><p>{diversificationText(result)}</p></article><article><span>내 성향에 맞는 변동성</span><strong>{result.profileRange[0].toFixed(2)}~{result.profileRange[1].toFixed(2)}%</strong><p>{profileFitText(result)}</p></article></div>}
     <p className="result-disclaimer">{PORTFOLIO_DISCLAIMER}</p>
   </section>;
 }
