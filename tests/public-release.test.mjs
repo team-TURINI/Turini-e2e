@@ -77,7 +77,7 @@ test("portfolio screen exposes the revised asset classification help", () => {
   assert.doesNotMatch(pageSource, /분석 가중치/);
   assert.doesNotMatch(pageSource, /scoreMax\}점 만점/);
   assert.doesNotMatch(pageSource, /내부 종합점수/);
-  assert.match(pageSource, /서비스 변동성 위험등급/);
+  assert.match(pageSource, /<p>위험등급<\/p>/);
   assert.doesNotMatch(pageSource, /portfolio-model-notice/);
   assert.match(pageSource, /<p className="result-disclaimer">\{PORTFOLIO_DISCLAIMER\}<\/p>/);
   // 데이터 기준일·임시값 안내는 화면에 보여 주지 않는다
