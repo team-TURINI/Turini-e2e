@@ -142,7 +142,9 @@ test("진단·학습 화면이 요청한 사용자 흐름을 지킨다", () => {
   assert.match(pageSource, /completedIds: progress\.completedIds/);
   assert.doesNotMatch(pageSource, /className="difficulty-row"/);
   assert.doesNotMatch(pageSource, /onClick=\{\(\) => startCategory\(category\.name\)\}/);
-  assert.match(pageSource, /showActiveLearningContext/);
+  // 모든 화면 헤더는 투리니 로고 하나로 통일한다 (누르면 홈)
+  assert.match(pageSource, /<header className="top-status"><button type="button" className="brand-logo" onClick=\{\(\) => navigate\("home"\)\}/);
+  assert.doesNotMatch(pageSource, /showActiveLearningContext/);
   assert.doesNotMatch(pageSource, /className="round-notice"/);
   assert.match(pageSource, /10년 이상/);
 });

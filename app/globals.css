@@ -47,6 +47,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .top-status > div span { display: flex; gap: 5px; align-items: center; min-width: 65px; justify-content: center; padding: 8px 12px; background: #f7faf8; border-radius: 12px; font-size: 13px; }
 .mobile-brand { display: none; border: 0; background: none; padding: 0; }
 .learning-context { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+/* 모든 화면 왼쪽 위 투리니 로고 — 누르면 홈으로 */
+.brand-logo { flex: 0 0 auto; display: flex; align-items: center; padding: 2px 4px; border: 0; border-radius: 12px; background: transparent; cursor: pointer; }
+.brand-logo span { display: block; width: 76px; height: 48px; background: url("/assets/brand/turini-logo-header.webp") left center / contain no-repeat; }
+.brand-logo:hover span { transform: translateY(-1px); }
 .top-category-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 11px; color: #fff; font-size: 18px; box-shadow: 0 3px 0 rgba(33,58,43,.13); }
 .top-learning-copy { min-width: 0; display: grid; gap: 1px; }
 .top-learning-copy small { max-width: 72px; overflow: hidden; color: var(--muted); font-size: 8px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }

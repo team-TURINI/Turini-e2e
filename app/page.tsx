@@ -623,14 +623,6 @@ export default function Home() {
   const resumeSolved = categoryCounts[resumeCategory.name] || 0;
   const resumeLevel = Math.min(MAX_CATEGORY_LEVEL,
     completedCategoryLessons(resumeSolved, progress.categoryLessonCompletions[resumeCategory.name] || 0) + 1);
-  const showActiveLearningContext = view === "learn" || view === "difficulty";
-  const generalContext: Record<Exclude<View, "learn" | "difficulty">, string> = {
-    home: "홈",
-    category: "금융 학습",
-    portfolio: "포트폴리오",
-    assets: "자산 플래너",
-    profile: "마이",
-  };
 
   const avatarStats = useMemo(
     () =>
@@ -1170,7 +1162,7 @@ export default function Home() {
     <main className="app-bg">
       <div className="app-shell">
         <section className="app-main">
-          <header className="top-status">{showActiveLearningContext ? <button className="learning-context" onClick={() => navigate("category")} aria-label={`현재 학습 ${activeCategory.name}, 레벨 ${activeCategoryLevel}`}><span className="top-category-icon" style={{ background: CATEGORY_COLORS[activeCategory.color] }}>{activeCategory.icon}</span><span className="top-learning-copy"><small>{activeCategory.name}</small><b>Lv. {activeCategoryLevel}</b></span></button> : <div className="learning-context" aria-label={`${generalContext[view as Exclude<View, "learn" | "difficulty">]} 화면`}><span className="top-category-icon" style={{ background: "#31b66a" }}>T</span><span className="top-learning-copy"><small>TURINI</small><b>{generalContext[view as Exclude<View, "learn" | "difficulty">]}</b></span></div>}<div><span>🔥 <b>{progress.streak}</b></span><span>💎 <b>{progress.xp}</b></span><span>♥ <b>5</b></span></div></header>
+          <header className="top-status"><button type="button" className="brand-logo" onClick={() => navigate("home")} aria-label="투리니 홈으로"><span aria-hidden="true" /></button><div><span>🔥 <b>{progress.streak}</b></span><span>💎 <b>{progress.xp}</b></span><span>♥ <b>5</b></span></div></header>
 
           {dataError ? (
             <div className="app-notice" role="alert">
