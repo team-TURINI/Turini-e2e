@@ -12,7 +12,7 @@ import {
   type PendingRetry,
 } from "./quiz-scheduler";
 import { directInputGuide, isAnswerCorrect, isChoiceCorrect } from "./answer-utils";
-import { answerLinkedExplanation, friendlyizeExplanation } from "./explanation-utils";
+import { answerLinkedExplanation } from "./explanation-utils";
 import { formatQuestionPrompt, normalizeBlankChoiceQuestions } from "./question-presentation";
 import LearningMap, { bandEntryLesson } from "./learning-map";
 import DifficultySelect, { DIFFICULTY_COPY, type DifficultyCard } from "./difficulty-select";
@@ -785,6 +785,11 @@ export default function Home() {
     const retryQuestion = !correct && !isRetry && session.mode !== "diagnosis"
       ? createRetryQuestion(question, questions, session.index + progress.studySessions * 31)
       : null;
+    if (question.isProfile) {
+      // 성향 문항은 정답이 없으므로 피드백 없이 점수만 더하고 바로 다음 문제로 넘어갑니다.
+      nextQuestion({ ...session, profileScore: session.profileScore + profilePoint });
+      return;
+    }
     setAnswerCorrect(correct);
     setAnswered(true);
     setSession((current) => {
@@ -876,19 +881,20 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const nextQuestion = () => {
-    if (!session) return;
-    const finishedMainQuestions = session.phase === "main"
-      && session.index >= session.baseQuestionCount - 1;
-    if (finishedMainQuestions && session.retryQuestions.length > 0) {
+  const nextQuestion = (current: QuizSession | null = session) => {
+    if (!current) return;
+    const finishedMainQuestions = current.phase === "main"
+      && current.index >= current.baseQuestionCount - 1;
+    if (finishedMainQuestions && current.retryQuestions.length > 0) {
+      setSession(current);
       setShowRetryIntro(true);
       return;
     }
-    if (session.index >= session.questions.length - 1) {
-      finishSession(session);
+    if (current.index >= current.questions.length - 1) {
+      finishSession(current);
       return;
     }
-    setSession({ ...session, index: session.index + 1 });
+    setSession({ ...current, index: current.index + 1 });
     setSelected("");
     setSelectedChoices([]);
     setTyped("");
@@ -1103,22 +1109,22 @@ export default function Home() {
               })}
             </div>
           )}
-          <div className={`quiz-mascot ${answered ? "answered" : "waiting"}`}>
+          {question.isProfile ? null : <div className={`quiz-mascot ${answered ? "answered" : "waiting"}`}>
             {answered
               ? <TuriniAvatar customization={BASIC_DISPLAY_CUSTOMIZATION} motion={answerCorrect ? "correct" : "wrong"} className="turini-quiz" replayKey={`${question.id}-${session.index}`} holdLast />
               : <QuizThinkingTurini key={`${question.id}-${session.index}`} className="turini-quiz turini-quiz--thinking" />}
-            <div className="speech">{answered ? (question.isProfile ? "선택 완료! 나에게 맞는 답이에요." : answerCorrect ? "정답이에요! 잘했어요!" : "괜찮아요. 해설로 익혀봐요!") : "천천히 생각해도 괜찮아요!"}</div>
-          </div>
+            <div className="speech">{answered ? (answerCorrect ? "정답이에요! 잘했어요!" : "괜찮아요. 해설로 익혀봐요!") : "천천히 생각해도 괜찮아요!"}</div>
+          </div>}
           {answered ? (
             <aside className={`feedback-card ${answerCorrect ? "success" : "error"}`}>
-              <h2>{question.isProfile ? "성향 선택 완료" : answerCorrect ? "정답이에요!" : `정답: ${isText ? inputGuide.answerLabel : question.answer}`}</h2>
-              <p>{question.isProfile
-                ? friendlyizeExplanation(question.explanation)
-                : answerLinkedExplanation(question.type, question.answer, question.explanation)}</p>
+              <h2>{answerCorrect ? "정답이에요!" : `정답: ${isText ? inputGuide.answerLabel : question.answer}`}</h2>
+              <p>{answerLinkedExplanation(question.type, question.answer, question.explanation)}</p>
               {/* 출처는 데이터에 그대로 보관하고(question.source_url·source_name) 사용자 화면에는 보여 주지 않습니다. */}
             </aside>
           ) : null}
-          <button className="primary-button quiz-submit" disabled={!chosen} onClick={answered ? nextQuestion : () => submitAnswer()}>{answered
+          <button className="primary-button quiz-submit" disabled={!chosen} onClick={answered ? () => nextQuestion() : () => submitAnswer()}>{question.isProfile
+            ? session.index >= session.questions.length - 1 ? "결과 보기" : "다음 문제"
+            : answered
             ? session.phase === "main" && session.index >= session.baseQuestionCount - 1 && session.retryQuestions.length
               ? "오답 복습 안내"
               : session.index === session.questions.length - 1
