@@ -49,7 +49,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .learning-context { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 /* 모든 화면 왼쪽 위 투리니 로고 — 누르면 홈으로 */
 .brand-logo { flex: 0 0 auto; display: flex; align-items: center; padding: 2px 4px; border: 0; border-radius: 12px; background: transparent; cursor: pointer; }
-.brand-logo span { display: block; width: 76px; height: 48px; background: url("/assets/brand/turini-logo-header.webp") left center / contain no-repeat; }
+.brand-logo span { display: block; width: 60px; height: 38px; background: url("/assets/brand/turini-logo-header.webp") left center / contain no-repeat; }
 .brand-logo:hover span { transform: translateY(-1px); }
 .top-category-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 11px; color: #fff; font-size: 18px; box-shadow: 0 3px 0 rgba(33,58,43,.13); }
 .top-learning-copy { min-width: 0; display: grid; gap: 1px; }
